@@ -6,6 +6,12 @@ Python stack:
 - [`Woyken/py-huckleberry-api`](https://github.com/Woyken/py-huckleberry-api) — Firebase Auth + Firestore (gRPC/HTTP2 + Protobuf) API client.
 - [`bckenstler/py-huckleberry-mcp`](https://github.com/bckenstler/py-huckleberry-mcp) — FastMCP server exposing 22 tools across 5 categories.
 
+> **Licensing status (checked 2026-06-01):** both source repos are **MIT-licensed** —
+> `py-huckleberry-api` © 2025 Woyken; `py-huckleberry-mcp` © 2026 Huckleberry MCP Contributors.
+> MIT permits derivative works and commercial use; the only obligation is to
+> reproduce each project's license text and copyright notice in our
+> distribution. No licensing blockers — see **T3.7**.
+
 A Node port should mirror that two-layer split:
 
 | Layer | Python | Node equivalent |
@@ -93,6 +99,7 @@ Rules of thumb:
 | **T3.4** | README: install, env config, Claude Desktop `mcpServers` snippet, tool catalog | A new user can configure & run from the README alone | Haiku 4.5 |
 | **T3.5** | npm packaging: `bin` for `npx`, publish workflow, semver | `npx node-huckleberry-mcp` launches the server | Haiku 4.5 |
 | **T3.6** | `CLAUDE.md`: architecture + conventions for future agent contributors | Present and accurate | Haiku 4.5 |
+| **T3.7** | **Attribution & license compliance**: this port lifts most of its design/behavior from the two MIT source repos, so credit them properly. (a) Add a `LICENSE` (MIT) for this project; (b) add a `NOTICE`/`THIRD-PARTY` file or README "Credits" section reproducing the MIT text + copyright lines for `py-huckleberry-api` (© 2025 Woyken) and `py-huckleberry-mcp` (© 2026 Huckleberry MCP Contributors), with links; (c) credit both prominently at the top of the README as the upstream this is ported from | Both upstream MIT notices + copyrights are reproduced and linked; README clearly states this is a Node port of the two projects | Haiku 4.5 |
 
 ---
 
@@ -108,7 +115,7 @@ Rules of thumb:
 
 - **~1 Opus task** (T0.2) — the one place capability decides success.
 - **~12 Sonnet tasks** — the implementation core.
-- **~12 Haiku tasks** — scaffolding, thin tool wrappers, docs, config.
+- **~13 Haiku tasks** — scaffolding, thin tool wrappers, docs, config, attribution.
 
 Pushing routine work down to Haiku and reserving Opus for the single
 high-uncertainty spike keeps the bulk of spend in the mid tier where it earns
