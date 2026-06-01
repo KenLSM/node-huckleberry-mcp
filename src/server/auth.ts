@@ -24,7 +24,10 @@ export function getClient(): HuckleberryClient {
     );
   }
 
-  _client = new HuckleberryClient({ credentials: { email, password } });
+  _client = new HuckleberryClient({
+    credentials: { email, password },
+    timezone: process.env.HUCKLEBERRY_TIMEZONE ?? "UTC",
+  });
   return _client;
 }
 

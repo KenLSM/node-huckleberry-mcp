@@ -16,9 +16,12 @@ import {
 } from "firebase/firestore";
 import { FIREBASE_CONFIG } from "../config.js";
 import { HuckleberryAuth, type AuthCredentials, type AuthSession } from "../auth/index.js";
+import { huckleberryOffsetMinutes } from "../util/timezone.js";
 
 export interface HuckleberryClientOptions {
   credentials: AuthCredentials;
+  /** IANA timezone (e.g. "Asia/Singapore") used for the `offset` field. Defaults to UTC. */
+  timezone?: string;
 }
 
 /**
@@ -34,11 +37,13 @@ export class HuckleberryClient {
   private auth: HuckleberryAuth;
   private db: Firestore;
   private credentials: AuthCredentials;
+  private timezone: string;
   /** In-flight initial authentication, shared by concurrent connect() calls. */
   private connecting: Promise<AuthSession> | null = null;
 
   constructor(options: HuckleberryClientOptions) {
     this.credentials = options.credentials;
+    this.timezone = options.timezone ?? "UTC";
     // initializeApp() throws app/duplicate-app if called twice for the same
     // name, so reuse the named app when it already exists.
     this.app = getApps().some((a) => a.name === FIREBASE_APP_NAME)
@@ -70,6 +75,11 @@ export class HuckleberryClient {
   async getUid(): Promise<string> {
     const session = await this.connect();
     return session.uid;
+  }
+
+  /** The Huckleberry `offset` value (minutes, negated) for the configured timezone. */
+  getOffsetMinutes(date: Date = new Date()): number {
+    return huckleberryOffsetMinutes(this.timezone, date);
   }
 
   // ── Firestore read/write helpers ──────────────────────────────────────────

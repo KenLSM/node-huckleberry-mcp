@@ -111,6 +111,42 @@ ESLint/Prettier/Jest:
 Vitest resolves the source's NodeNext-style `.js` import specifiers via a small
 alias in `vitest.config.ts` (`/^(\.{1,2}\/.*)\.js$/` → `$1`).
 
+## Verified Firestore tracker schema (live-confirmed 2026-06)
+
+Captured via `npm run inspect:schema` against a real account. **All time values
+are plain numbers, not Firestore `Timestamp` objects**: `start`/`lastUpdated` are
+epoch **seconds** (float), `duration` is **seconds**, `offset` is timezone
+minutes **negated** (UTC+8 → `-480`; see `src/util/timezone.ts`).
+
+Each tracker is `{collection}/{childUid}` (parent doc) with entries in a
+subcollection, plus a `prefs` summary on the parent. Doc IDs are Firestore
+auto-IDs (`addDoc`).
+
+| Tracker                      | Entry path               | Parent summary                                                          |
+| ---------------------------- | ------------------------ | ----------------------------------------------------------------------- |
+| Sleep                        | `sleep/{cid}/intervals`  | `prefs.lastSleep`                                                       |
+| Feed (nursing/bottle/solids) | `feed/{cid}/intervals`   | `prefs.lastFeed`, `prefs.lastSide`, `prefs.bottle*`                     |
+| Diaper + potty               | `diaper/{cid}/intervals` | `prefs.lastDiaper` / `prefs.lastPotty`                                  |
+| Pump                         | `pump/{cid}/intervals`   | `prefs.lastPump`                                                        |
+| Growth                       | `health/{cid}/data`      | `prefs.lastGrowthEntry` (⚠️ **not yet live-confirmed — T1.8 deferred**) |
+
+Confirmed entry shapes (live):
+
+- **Sleep:** `{ start, duration, offset, lastUpdated }`; `prefs.lastSleep = { start, offset, duration }`.
+- **Feed / nursing:** `{ mode:"breast", leftDuration, rightDuration, lastSide, start, offset, lastUpdated }`.
+- **Feed / bottle:** `{ mode:"bottle", amount, bottleType:"Breast Milk", units:"ml", start, offset, lastUpdated }`.
+- **Feed / solids:** `{ mode:"solids", start, offset, lastUpdated }` (+ food refs when present).
+- **Diaper:** `{ mode:"poo", color:"yellow", quantity:50, start, offset, lastUpdated }` — `quantity` is a **scalar** (0/50/100 = little/medium/big), _not_ the `{pee,poo}` map the Python source uses. **Live wins.**
+- **Pump:** `{ entryMode:"total", leftAmount, rightAmount, duration, units:"oz", start, offset, lastUpdated }`.
+
+Every parent `prefs` also carries `timestamp:{ seconds:<float> }` and
+`local_timestamp:<float>` set to "now" on each write.
+
+> The previously-generated ops (T1.5–T1.9) do **not** match this: they wrote
+> Firestore `Timestamp` objects, invented field names (`startTime`/`status`/`date`),
+> omitted `offset` + `prefs`, and used 3 wrong collections. They are being ported
+> to the shapes above.
+
 ## Implementation status
 
 - **T1.1 (auth)** — `src/auth/auth.ts`: `HuckleberryAuth` wraps
