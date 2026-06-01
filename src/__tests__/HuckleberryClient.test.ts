@@ -4,6 +4,10 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 // vi.mock is hoisted, so shared mock fns must come from vi.hoisted().
 
 const {
+  apps,
+  mockInitializeApp,
+  mockGetApp,
+  mockGetApps,
   mockGetDoc,
   mockSetDoc,
   mockUpdateDoc,
@@ -15,24 +19,41 @@ const {
   mockEnsureSession,
   mockGetSession,
   mockAuthSignOut,
-} = vi.hoisted(() => ({
-  mockGetDoc: vi.fn(),
-  mockSetDoc: vi.fn(),
-  mockUpdateDoc: vi.fn(),
-  mockDeleteDoc: vi.fn(),
-  mockAddDoc: vi.fn(),
-  mockDoc: vi.fn((...args: unknown[]) => ({ __path: (args.slice(1) as string[]).join("/") })),
-  mockCollection: vi.fn((...args: unknown[]) => ({
-    __path: (args.slice(1) as string[]).join("/"),
-  })),
-  mockAuthenticate: vi.fn(),
-  mockEnsureSession: vi.fn(),
-  mockGetSession: vi.fn(),
-  mockAuthSignOut: vi.fn(),
-}));
+} = vi.hoisted(() => {
+  // Stateful firebase/app mock that reproduces the real app/duplicate-app error.
+  const apps: { name: string }[] = [];
+  return {
+    apps,
+    mockInitializeApp: vi.fn((_config: unknown, name: string) => {
+      if (apps.some((a) => a.name === name)) {
+        throw new Error(`Firebase: app/duplicate-app: ${name}`);
+      }
+      const app = { name };
+      apps.push(app);
+      return app;
+    }),
+    mockGetApp: vi.fn((name: string) => apps.find((a) => a.name === name)),
+    mockGetApps: vi.fn(() => apps),
+    mockGetDoc: vi.fn(),
+    mockSetDoc: vi.fn(),
+    mockUpdateDoc: vi.fn(),
+    mockDeleteDoc: vi.fn(),
+    mockAddDoc: vi.fn(),
+    mockDoc: vi.fn((...args: unknown[]) => ({ __path: (args.slice(1) as string[]).join("/") })),
+    mockCollection: vi.fn((...args: unknown[]) => ({
+      __path: (args.slice(1) as string[]).join("/"),
+    })),
+    mockAuthenticate: vi.fn(),
+    mockEnsureSession: vi.fn(),
+    mockGetSession: vi.fn(),
+    mockAuthSignOut: vi.fn(),
+  };
+});
 
 vi.mock("firebase/app", () => ({
-  initializeApp: () => ({}),
+  initializeApp: mockInitializeApp,
+  getApp: mockGetApp,
+  getApps: mockGetApps,
 }));
 
 vi.mock("firebase/firestore", () => ({
@@ -67,7 +88,38 @@ describe("HuckleberryClient", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    apps.length = 0; // fresh app registry; the line below performs the first init
     client = new HuckleberryClient({ credentials: CREDS });
+  });
+
+  describe("Firebase app lifecycle", () => {
+    it("reuses the named app on a second instance (no app/duplicate-app)", () => {
+      // beforeEach already performed the one and only initializeApp.
+      expect(() => new HuckleberryClient({ credentials: CREDS })).not.toThrow();
+      expect(mockInitializeApp).toHaveBeenCalledTimes(1);
+      expect(apps).toHaveLength(1);
+    });
+  });
+
+  describe("connect() concurrency", () => {
+    it("shares a single sign-in across concurrent first-time callers", async () => {
+      mockGetSession.mockReturnValue(null);
+      let resolveAuth!: (s: unknown) => void;
+      mockAuthenticate.mockReturnValue(
+        new Promise((res) => {
+          resolveAuth = res;
+        }),
+      );
+
+      const p1 = client.connect();
+      const p2 = client.connect();
+      resolveAuth(SESSION);
+      const [s1, s2] = await Promise.all([p1, p2]);
+
+      expect(mockAuthenticate).toHaveBeenCalledTimes(1);
+      expect(s1).toEqual(SESSION);
+      expect(s2).toEqual(SESSION);
+    });
   });
 
   describe("connect()", () => {

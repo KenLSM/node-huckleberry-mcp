@@ -1,4 +1,4 @@
-import { initializeApp, type FirebaseApp } from "firebase/app";
+import { initializeApp, getApp, getApps, type FirebaseApp } from "firebase/app";
 import {
   getFirestore,
   doc,
@@ -26,15 +26,24 @@ export interface HuckleberryClientOptions {
  * Higher-level operation modules (sleep, feed, etc.) receive an instance of
  * this class so they share a single authenticated connection.
  */
+/** Named Firebase app so we never collide with a host's default app. */
+const FIREBASE_APP_NAME = "huckleberry";
+
 export class HuckleberryClient {
   private app: FirebaseApp;
   private auth: HuckleberryAuth;
   private db: Firestore;
   private credentials: AuthCredentials;
+  /** In-flight initial authentication, shared by concurrent connect() calls. */
+  private connecting: Promise<AuthSession> | null = null;
 
   constructor(options: HuckleberryClientOptions) {
     this.credentials = options.credentials;
-    this.app = initializeApp(FIREBASE_CONFIG);
+    // initializeApp() throws app/duplicate-app if called twice for the same
+    // name, so reuse the named app when it already exists.
+    this.app = getApps().some((a) => a.name === FIREBASE_APP_NAME)
+      ? getApp(FIREBASE_APP_NAME)
+      : initializeApp(FIREBASE_CONFIG, FIREBASE_APP_NAME);
     this.auth = new HuckleberryAuth(this.app);
     this.db = getFirestore(this.app);
   }
@@ -42,14 +51,19 @@ export class HuckleberryClient {
   /**
    * Authenticates (or re-uses the existing session) and returns it. All
    * operation methods call this to guarantee a valid token before touching
-   * Firestore.
+   * Firestore. Concurrent first-time callers share a single sign-in.
    */
   async connect(): Promise<AuthSession> {
     const existing = this.auth.getSession();
     if (existing) {
       return this.auth.ensureSession();
     }
-    return this.auth.authenticate(this.credentials);
+    if (!this.connecting) {
+      this.connecting = this.auth.authenticate(this.credentials).finally(() => {
+        this.connecting = null;
+      });
+    }
+    return this.connecting;
   }
 
   /** Returns the current uid, throwing if not yet authenticated. */

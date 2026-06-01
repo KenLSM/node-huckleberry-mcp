@@ -9,4 +9,7 @@ const main = async () => {
   console.log("Huckleberry MCP server stub");
 };
 
-main();
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

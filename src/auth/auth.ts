@@ -6,6 +6,7 @@ import {
   type User,
 } from "firebase/auth";
 import type { FirebaseApp } from "firebase/app";
+import { TOKEN_EXPIRY_MARGIN_MS } from "../config.js";
 
 export interface AuthSession {
   uid: string;
@@ -91,7 +92,6 @@ export class HuckleberryAuth {
 
   private isTokenExpiringSoon(): boolean {
     if (!this.session) return false;
-    const TOKEN_EXPIRY_MARGIN_MS = 5 * 60 * 1000;
     return Date.now() >= this.session.expiresAt - TOKEN_EXPIRY_MARGIN_MS;
   }
 
