@@ -33,6 +33,15 @@ npm run inspect:schema
 This is the **ground truth** used to port `src/models/*` and `src/client/*Ops.ts`
 to the real schema. Paste its output into the porting task.
 
+### Running it via GitHub Actions instead
+
+If you'd rather not run it locally, the **Inspect Schema** workflow
+(`.github/workflows/inspect-schema.yml`) runs the same script in CI using the
+`HUCKLEBERRY_EMAIL` / `HUCKLEBERRY_PASSWORD` repository secrets. Trigger it from
+the Actions tab (Run workflow → pick the branch); the dump appears in the run
+**summary** and as the `schema-output` artifact. The "Run workflow" button only
+appears once the workflow exists on the repository's default branch.
+
 ## 2. Live integration suite (`npm run test:integration`)
 
 Runs `src/__tests__/live.integration.test.ts` against the account. Without

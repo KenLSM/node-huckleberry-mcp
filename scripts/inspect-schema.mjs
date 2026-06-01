@@ -59,7 +59,7 @@ console.log(`Authenticated uid=${uid}`);
 const userSnap = await getDoc(doc(db, "users", uid));
 const user = userSnap.data() ?? {};
 const childUids = Array.isArray(user.childList) ? user.childList.map((c) => c.cid) : [];
-const cid = process.env.CHILD_UID ?? user.lastChild ?? childUids[0];
+const cid = process.env.CHILD_UID || user.lastChild || childUids[0];
 console.log(`childList: ${childUids.join(", ") || "(none)"}\nInspecting child cid=${cid}`);
 if (!cid) {
   console.error("No child found on this account; cannot inspect tracker schemas.");

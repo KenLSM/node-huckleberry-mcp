@@ -1,0 +1,67 @@
+# Manually-triggered live schema inspector (part of the T3.2 harness).
+#
+# Logs into a REAL Huckleberry account (credentials from repo secrets) and dumps
+# the raw Firestore document shapes per tracker, so the client models/ops can be
+# ported to the real schema. Read-only — it never writes.
+#
+# Required repository secrets:
+#   HUCKLEBERRY_EMAIL, HUCKLEBERRY_PASSWORD
+#
+# NOTE: the output contains your own account data (e.g. child names) in the run
+# logs / summary / artifact. Keep the repo private. Trigger it from the Actions
+# tab → "Inspect Schema" → Run workflow (pick this branch).
+#
+# GitHub only shows the "Run workflow" button once this file exists on the
+# repository's DEFAULT branch — if it isn't there yet, merge this branch first
+# (or temporarily add the workflow to the default branch).
+name: Inspect Schema
+
+on:
+  workflow_dispatch:
+    inputs:
+      child_uid:
+        description: "Child UID to inspect (optional; defaults to the account's lastChild)"
+        required: false
+        type: string
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Inspect schema
+        env:
+          HUCKLEBERRY_EMAIL: ${{ secrets.HUCKLEBERRY_EMAIL }}
+          HUCKLEBERRY_PASSWORD: ${{ secrets.HUCKLEBERRY_PASSWORD }}
+          CHILD_UID: ${{ inputs.child_uid }}
+        run: |
+          set -o pipefail
+          node scripts/inspect-schema.mjs | tee schema-output.txt
+
+      - name: Publish output to job summary
+        if: always()
+        run: |
+          {
+            echo '## Schema inspector output'
+            echo ''
+            echo '```json'
+            cat schema-output.txt 2>/dev/null || echo '(no output — the inspect step likely failed; see its logs)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload output artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: schema-output
+          path: schema-output.txt
+          if-no-files-found: ignore
