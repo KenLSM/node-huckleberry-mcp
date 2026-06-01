@@ -1,12 +1,4 @@
-import {
-  collection,
-  addDoc,
-  getDocs,
-  query,
-  orderBy,
-  limit,
-  Timestamp,
-} from "firebase/firestore";
+import { collection, addDoc, getDocs, query, orderBy, limit, Timestamp } from "firebase/firestore";
 import type { HuckleberryClient } from "./HuckleberryClient.js";
 import { GrowthRecord, type GrowthRecordParsed } from "../models/index.js";
 

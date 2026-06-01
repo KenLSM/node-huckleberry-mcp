@@ -88,60 +88,60 @@ The server exposes **29 tools** across 6 categories:
 
 ### Child Management (2 tools)
 
-| Tool | Input | Output |
-|------|-------|--------|
-| `get_user` | — | User profile + child list |
+| Tool        | Input       | Output                                |
+| ----------- | ----------- | ------------------------------------- |
+| `get_user`  | —           | User profile + child list             |
 | `get_child` | `child_uid` | Child profile (name, birthDate, etc.) |
 
 ### Sleep (7 tools)
 
-| Tool | Purpose |
-|------|---------|
-| `start_sleep` | Begin active sleep session |
-| `pause_sleep` | Pause active sleep |
-| `resume_sleep` | Resume paused sleep |
-| `cancel_sleep` | Cancel sleep session |
-| `complete_sleep` | Mark sleep as completed |
-| `log_sleep` | Log completed sleep with start/end times |
-| `get_sleep_history` | Retrieve recent sleep sessions |
+| Tool                | Purpose                                  |
+| ------------------- | ---------------------------------------- |
+| `start_sleep`       | Begin active sleep session               |
+| `pause_sleep`       | Pause active sleep                       |
+| `resume_sleep`      | Resume paused sleep                      |
+| `cancel_sleep`      | Cancel sleep session                     |
+| `complete_sleep`    | Mark sleep as completed                  |
+| `log_sleep`         | Log completed sleep with start/end times |
+| `get_sleep_history` | Retrieve recent sleep sessions           |
 
 ### Feeding (9 tools)
 
-| Tool | Purpose |
-|------|---------|
-| `start_feeding` | Begin nursing session |
-| `pause_feeding` | Pause active nursing |
-| `resume_feeding` | Resume paused nursing |
+| Tool                  | Purpose                     |
+| --------------------- | --------------------------- |
+| `start_feeding`       | Begin nursing session       |
+| `pause_feeding`       | Pause active nursing        |
+| `resume_feeding`      | Resume paused nursing       |
 | `switch_feeding_side` | Switch sides during nursing |
-| `complete_feeding` | Mark nursing as completed |
-| `log_bottle` | Log bottle feeding |
-| `log_pump` | Log pumped milk |
-| `list_pump_intervals` | Retrieve pump sessions |
-| `get_feed_history` | Retrieve feeding history |
+| `complete_feeding`    | Mark nursing as completed   |
+| `log_bottle`          | Log bottle feeding          |
+| `log_pump`            | Log pumped milk             |
+| `list_pump_intervals` | Retrieve pump sessions      |
+| `get_feed_history`    | Retrieve feeding history    |
 
 ### Health (2 tools)
 
-| Tool | Purpose |
-|------|---------|
+| Tool         | Purpose                                                  |
+| ------------ | -------------------------------------------------------- |
 | `log_diaper` | Log diaper change (pee/poo/both/dry + color/consistency) |
-| `log_potty` | Log potty training activity |
+| `log_potty`  | Log potty training activity                              |
 
 ### Growth (3 tools)
 
-| Tool | Purpose |
-|------|---------|
-| `log_growth` | Log measurements (weight, height, head circumference) |
-| `get_latest_growth` | Get most recent growth record |
-| `get_growth_history` | Retrieve growth history |
+| Tool                 | Purpose                                               |
+| -------------------- | ----------------------------------------------------- |
+| `log_growth`         | Log measurements (weight, height, head circumference) |
+| `get_latest_growth`  | Get most recent growth record                         |
+| `get_growth_history` | Retrieve growth history                               |
 
 ### Solids (4 tools)
 
-| Tool | Purpose |
-|------|---------|
+| Tool                 | Purpose                     |
+| -------------------- | --------------------------- |
 | `list_curated_foods` | Fetch curated food database |
-| `list_custom_foods` | List custom foods for child |
-| `create_custom_food` | Create custom food entry |
-| `log_solids` | Log solids feeding |
+| `list_custom_foods`  | List custom foods for child |
+| `create_custom_food` | Create custom food entry    |
+| `log_solids`         | Log solids feeding          |
 
 ## Development
 

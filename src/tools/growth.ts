@@ -1,11 +1,7 @@
 import { z } from "zod";
 import { registerTool } from "../server/server.js";
 import { getClient } from "../server/auth.js";
-import {
-  logGrowth,
-  getLatestGrowth,
-  getGrowthHistory,
-} from "../client/index.js";
+import { logGrowth, getLatestGrowth, getGrowthHistory } from "../client/index.js";
 
 // T2.7: Growth Tools (3 tools)
 

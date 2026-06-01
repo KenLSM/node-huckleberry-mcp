@@ -61,25 +61,28 @@ export function createServer(): Server {
     tools: registrations.map((r) => r.definition),
   }));
 
-  server.setRequestHandler(CallToolRequestSchema, (request: { params: { name: string; arguments?: Record<string, unknown> } }) => {
-    const { name, arguments: args } = request.params;
-    const reg = registrations.find((r) => r.definition.name === name);
-    if (!reg) {
-      return Promise.resolve<CallToolResult>({
-        content: [{ type: "text", text: `Unknown tool: ${name}` }],
-        isError: true,
-      });
-    }
-    const parsed = reg.schema.safeParse(args ?? {});
-    if (!parsed.success) {
-      const msg = parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ");
-      return Promise.resolve<CallToolResult>({
-        content: [{ type: "text", text: `Invalid arguments: ${msg}` }],
-        isError: true,
-      });
-    }
-    return withErrorHandling(() => reg.handler(parsed.data));
-  });
+  server.setRequestHandler(
+    CallToolRequestSchema,
+    (request: { params: { name: string; arguments?: Record<string, unknown> } }) => {
+      const { name, arguments: args } = request.params;
+      const reg = registrations.find((r) => r.definition.name === name);
+      if (!reg) {
+        return Promise.resolve<CallToolResult>({
+          content: [{ type: "text", text: `Unknown tool: ${name}` }],
+          isError: true,
+        });
+      }
+      const parsed = reg.schema.safeParse(args ?? {});
+      if (!parsed.success) {
+        const msg = parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ");
+        return Promise.resolve<CallToolResult>({
+          content: [{ type: "text", text: `Invalid arguments: ${msg}` }],
+          isError: true,
+        });
+      }
+      return withErrorHandling(() => reg.handler(parsed.data));
+    },
+  );
 
   return server;
 }
@@ -112,7 +115,8 @@ function zodFieldToJsonSchema(field: z.ZodTypeAny): Record<string, unknown> {
   if (inner instanceof z.ZodNumber) return { type: "number" };
   if (inner instanceof z.ZodBoolean) return { type: "boolean" };
   if (inner instanceof z.ZodEnum) return { type: "string", enum: inner.options };
-  if (inner instanceof z.ZodArray) return { type: "array", items: zodFieldToJsonSchema(inner.element) };
+  if (inner instanceof z.ZodArray)
+    return { type: "array", items: zodFieldToJsonSchema(inner.element) };
   if (inner instanceof z.ZodObject) return { type: "object", ...zodShapeToJsonSchema(inner) };
   return {};
 }

@@ -13,7 +13,14 @@ export type DiaperColor =
   | "white"
   | "orange"
   | "other";
-export type DiaperConsistency = "hard" | "normal" | "soft" | "runny" | "watery" | "formed" | "mucousy";
+export type DiaperConsistency =
+  | "hard"
+  | "normal"
+  | "soft"
+  | "runny"
+  | "watery"
+  | "formed"
+  | "mucousy";
 
 export interface LogDiaperOptions {
   color?: DiaperColor;

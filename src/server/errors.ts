@@ -7,11 +7,7 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
  */
 export function toErrorResult(err: unknown): CallToolResult {
   const message =
-    err instanceof Error
-      ? err.message
-      : typeof err === "string"
-        ? err
-        : JSON.stringify(err);
+    err instanceof Error ? err.message : typeof err === "string" ? err : JSON.stringify(err);
   return {
     content: [{ type: "text", text: `Error: ${message}` }],
     isError: true,
@@ -22,8 +18,6 @@ export function toErrorResult(err: unknown): CallToolResult {
  * Wraps a tool handler so any thrown error is caught and returned as an
  * isError result instead of crashing the server.
  */
-export function withErrorHandling(
-  fn: () => Promise<CallToolResult>,
-): Promise<CallToolResult> {
+export function withErrorHandling(fn: () => Promise<CallToolResult>): Promise<CallToolResult> {
   return fn().catch(toErrorResult);
 }

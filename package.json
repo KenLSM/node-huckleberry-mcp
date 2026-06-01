@@ -3,33 +3,33 @@
   "version": "0.1.0",
   "description": "Node.js MCP server for Huckleberry baby tracker. Expose sleep, feeding, growth, diapers, and solids data to Claude and other AI applications.",
   "keywords": [
-    "mcp",
-    "model-context-protocol",
-    "huckleberry",
+    "ai",
     "baby-tracker",
     "claude",
-    "ai"
+    "huckleberry",
+    "mcp",
+    "model-context-protocol"
   ],
+  "homepage": "https://github.com/KenLSM/node-huckleberry-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/KenLSM/node-huckleberry-mcp/issues"
+  },
   "license": "MIT",
   "author": "KenLSM",
   "repository": {
     "type": "git",
     "url": "https://github.com/KenLSM/node-huckleberry-mcp.git"
   },
-  "homepage": "https://github.com/KenLSM/node-huckleberry-mcp#readme",
-  "bugs": {
-    "url": "https://github.com/KenLSM/node-huckleberry-mcp/issues"
-  },
   "bin": {
     "node-huckleberry-mcp": "dist/index.js"
   },
-  "type": "module",
-  "main": "dist/index.js",
   "files": [
     "dist/",
     "README.md",
     "LICENSE"
   ],
+  "type": "module",
+  "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
     "lint": "oxlint",

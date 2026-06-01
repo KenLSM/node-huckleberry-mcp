@@ -31,7 +31,12 @@ vi.mock("firebase/firestore", () => ({
 // Patch global fetch
 vi.stubGlobal("fetch", mockFetch);
 
-import { listCuratedFoods, listCustomFoods, createCustomFood, logSolids } from "../client/solidsOps";
+import {
+  listCuratedFoods,
+  listCustomFoods,
+  createCustomFood,
+  logSolids,
+} from "../client/solidsOps";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -48,7 +53,10 @@ const CHILD = "child-1";
 
 describe("listCuratedFoods()", () => {
   it("fetches and returns food array from Cloud Storage", async () => {
-    const foods = [{ id: "f1", name: "Apple" }, { id: "f2", name: "Banana" }];
+    const foods = [
+      { id: "f1", name: "Apple" },
+      { id: "f2", name: "Banana" },
+    ];
     mockFetch.mockResolvedValue({ ok: true, json: vi.fn().mockResolvedValue(foods) });
     const result = await listCuratedFoods();
     expect(result).toHaveLength(2);
@@ -72,7 +80,16 @@ describe("listCustomFoods()", () => {
   it("returns custom foods from Firestore with id injected", async () => {
     mockGetDocs.mockResolvedValue({
       docs: [
-        { id: "food-1", data: () => ({ name: "Mango", childUid: CHILD, allergens: [], createdAt: 1_700_000_000, updatedAt: 1_700_000_000 }) },
+        {
+          id: "food-1",
+          data: () => ({
+            name: "Mango",
+            childUid: CHILD,
+            allergens: [],
+            createdAt: 1_700_000_000,
+            updatedAt: 1_700_000_000,
+          }),
+        },
       ],
     });
     const foods = await listCustomFoods(makeClient(), CHILD);
@@ -104,7 +121,10 @@ describe("createCustomFood()", () => {
 describe("logSolids()", () => {
   it("creates a completed solids record with food ids", async () => {
     mockAddDoc.mockResolvedValue({ id: "solids-1" });
-    const id = await logSolids(makeClient(), CHILD, ["f1", "f2"], { amount: 50, notes: "liked it" });
+    const id = await logSolids(makeClient(), CHILD, ["f1", "f2"], {
+      amount: 50,
+      notes: "liked it",
+    });
     const [, data] = mockAddDoc.mock.calls[0] as [unknown, Record<string, unknown>];
     expect(id).toBe("solids-1");
     expect(data.type).toBe("solids");

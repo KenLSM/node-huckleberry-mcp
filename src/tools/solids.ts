@@ -1,12 +1,7 @@
 import { z } from "zod";
 import { registerTool } from "../server/server.js";
 import { getClient } from "../server/auth.js";
-import {
-  listCuratedFoods,
-  listCustomFoods,
-  createCustomFood,
-  logSolids,
-} from "../client/index.js";
+import { listCuratedFoods, listCustomFoods, createCustomFood, logSolids } from "../client/index.js";
 
 // T2.8: Solids Tools (4 tools, optional in the original spec)
 
@@ -86,9 +81,7 @@ registerTool(
   "Log a solids feeding for a child",
   z.object({
     child_uid: z.string().min(1, "child_uid is required"),
-    food_ids: z
-      .array(z.string().min(1))
-      .min(1, "At least one food ID is required"),
+    food_ids: z.array(z.string().min(1)).min(1, "At least one food ID is required"),
     amount: z.number().optional(),
     note: z.string().optional(),
     date: z.number().optional(), // Unix timestamp (defaults to now)

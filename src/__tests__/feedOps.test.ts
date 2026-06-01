@@ -222,7 +222,11 @@ describe("listPumpIntervals()", () => {
   it("returns only pump-type intervals", async () => {
     const intervals = [
       { startTime: { seconds: 1_700_000_000, nanoseconds: 0 }, status: "completed", type: "pump" },
-      { startTime: { seconds: 1_700_000_100, nanoseconds: 0 }, status: "completed", type: "nursing" },
+      {
+        startTime: { seconds: 1_700_000_100, nanoseconds: 0 },
+        status: "completed",
+        type: "nursing",
+      },
     ];
     mockGetDocs.mockResolvedValue({ docs: intervals.map((d) => ({ data: () => d })) });
     const results = await listPumpIntervals(makeClient(), CHILD);
@@ -235,7 +239,11 @@ describe("listPumpIntervals()", () => {
 
 describe("getFeedHistory()", () => {
   it("returns parsed feed intervals ordered by startTime", async () => {
-    const raw = { startTime: { seconds: 1_700_000_000, nanoseconds: 0 }, status: "completed", type: "nursing" };
+    const raw = {
+      startTime: { seconds: 1_700_000_000, nanoseconds: 0 },
+      status: "completed",
+      type: "nursing",
+    };
     mockGetDocs.mockResolvedValue({ docs: [{ data: () => raw }] });
     const history = await getFeedHistory(makeClient(), CHILD);
     expect(history).toHaveLength(1);

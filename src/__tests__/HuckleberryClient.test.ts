@@ -218,11 +218,25 @@ describe("HuckleberryClient", () => {
   });
 
   describe("getUid()", () => {
-    it("returns uid from session", async () => {
+    it("authenticates first when there is no session yet", async () => {
+      // Regression: getUid() must connect() (not ensureSession() directly), or
+      // the first call in a flow throws "Not authenticated" (broke get_user).
+      mockGetSession.mockReturnValue(null);
+      mockAuthenticate.mockResolvedValue(SESSION);
+
+      const uid = await client.getUid();
+
+      expect(mockAuthenticate).toHaveBeenCalledTimes(1);
+      expect(uid).toBe("uid-abc");
+    });
+
+    it("reuses an existing session", async () => {
+      mockGetSession.mockReturnValue(SESSION);
       mockEnsureSession.mockResolvedValue(SESSION);
 
       const uid = await client.getUid();
 
+      expect(mockAuthenticate).not.toHaveBeenCalled();
       expect(uid).toBe("uid-abc");
     });
   });

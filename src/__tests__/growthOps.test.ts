@@ -1,25 +1,32 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const { mockAddDoc, mockGetDocs, mockQuery, mockCollection, mockOrderBy, mockLimit, MockTimestamp } =
-  vi.hoisted(() => {
-    class MockTimestamp {
-      static now() {
-        return { seconds: 1_700_000_000, nanoseconds: 0 };
-      }
-      static fromDate(d: Date) {
-        return { seconds: Math.floor(d.getTime() / 1000), nanoseconds: 0 };
-      }
+const {
+  mockAddDoc,
+  mockGetDocs,
+  mockQuery,
+  mockCollection,
+  mockOrderBy,
+  mockLimit,
+  MockTimestamp,
+} = vi.hoisted(() => {
+  class MockTimestamp {
+    static now() {
+      return { seconds: 1_700_000_000, nanoseconds: 0 };
     }
-    return {
-      mockAddDoc: vi.fn(),
-      mockGetDocs: vi.fn(),
-      mockQuery: vi.fn((...args: unknown[]) => ({ __query: args })),
-      mockCollection: vi.fn((_db: unknown, path: string) => ({ __path: path })),
-      mockOrderBy: vi.fn(() => ({ __orderBy: true })),
-      mockLimit: vi.fn(() => ({ __limit: true })),
-      MockTimestamp,
-    };
-  });
+    static fromDate(d: Date) {
+      return { seconds: Math.floor(d.getTime() / 1000), nanoseconds: 0 };
+    }
+  }
+  return {
+    mockAddDoc: vi.fn(),
+    mockGetDocs: vi.fn(),
+    mockQuery: vi.fn((...args: unknown[]) => ({ __query: args })),
+    mockCollection: vi.fn((_db: unknown, path: string) => ({ __path: path })),
+    mockOrderBy: vi.fn(() => ({ __orderBy: true })),
+    mockLimit: vi.fn(() => ({ __limit: true })),
+    MockTimestamp,
+  };
+});
 
 vi.mock("firebase/firestore", () => ({
   collection: mockCollection,

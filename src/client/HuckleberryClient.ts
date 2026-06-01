@@ -66,9 +66,9 @@ export class HuckleberryClient {
     return this.connecting;
   }
 
-  /** Returns the current uid, throwing if not yet authenticated. */
+  /** Returns the current uid, authenticating first if needed. */
   async getUid(): Promise<string> {
-    const session = await this.auth.ensureSession();
+    const session = await this.connect();
     return session.uid;
   }
 

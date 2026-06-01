@@ -1,58 +1,60 @@
 import { describe, it, expect } from "vitest";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import { createServer } from "../server/server.js";
+
+// Importing the tool modules registers every tool at module load time.
+import "../tools/childManagement.js";
+import "../tools/sleep.js";
+import "../tools/feeding.js";
+import "../tools/health.js";
+import "../tools/growth.js";
+import "../tools/solids.js";
 
 /**
- * T3.3 Integration Test: Verify server bootstrap and tool registration.
- * These are module-level tests that verify tools are registered correctly.
+ * T3.3 integration smoke test: boot the MCP server over an in-memory transport
+ * and verify the registered tools are actually listable by a client.
  */
 
-// Import server creation and tool registry
-import { createServer } from "../server/server.js";
-// The tool modules register themselves when imported via index.ts
+async function connectedClient(): Promise<Client> {
+  const server = createServer();
+  const [serverTransport, clientTransport] = InMemoryTransport.createLinkedPair();
+  await server.connect(serverTransport);
+  const client = new Client({ name: "test", version: "0" }, { capabilities: {} });
+  await client.connect(clientTransport);
+  return client;
+}
 
-describe("MCP Server Integration (T3.3)", () => {
-  it("server creates without errors", () => {
-    const server = createServer();
-    expect(server).toBeDefined();
-    expect(typeof server).toBe("object");
+describe("MCP server integration", () => {
+  it("creates a server without throwing", () => {
+    expect(() => createServer()).not.toThrow();
   });
 
-  it("server can be instantiated successfully", () => {
-    expect(() => {
-      createServer();
-    }).not.toThrow();
-  });
-});
+  it("lists every registered tool over the transport", async () => {
+    const client = await connectedClient();
+    const { tools } = await client.listTools();
+    const names = tools.map((t) => t.name);
 
-describe("Tool Registration Coverage (T2.3–T2.8)", () => {
-  // These verify that tool modules are importable (registration happens on import)
-  it("child management tools import without error", async () => {
-    await import("../tools/childManagement.js");
-    expect(true).toBe(true);
-  });
+    // The Python original exposes 22 tools; this port adds a few more.
+    expect(names.length).toBeGreaterThanOrEqual(22);
 
-  it("sleep tools import without error", async () => {
-    await import("../tools/sleep.js");
-    expect(true).toBe(true);
-  });
-
-  it("feeding tools import without error", async () => {
-    await import("../tools/feeding.js");
-    expect(true).toBe(true);
+    // Spot-check one tool per category is present.
+    for (const expected of [
+      "get_user",
+      "get_child",
+      "start_sleep",
+      "start_feeding",
+      "log_diaper",
+      "log_growth",
+      "log_solids",
+    ]) {
+      expect(names).toContain(expected);
+    }
   });
 
-  it("health tools import without error", async () => {
-    await import("../tools/health.js");
-    expect(true).toBe(true);
-  });
-
-  it("growth tools import without error", async () => {
-    await import("../tools/growth.js");
-    expect(true).toBe(true);
-  });
-
-  it("solids tools import without error", async () => {
-    await import("../tools/solids.js");
-    expect(true).toBe(true);
+  it("returns a structured error for an unknown tool", async () => {
+    const client = await connectedClient();
+    const result = await client.callTool({ name: "does_not_exist", arguments: {} });
+    expect(result.isError).toBe(true);
   });
 });
-

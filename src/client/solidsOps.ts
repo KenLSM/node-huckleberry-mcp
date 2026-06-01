@@ -5,8 +5,7 @@ import { CustomFood, type CustomFoodParsed } from "../models/index.js";
 // ── Constants ──────────────────────────────────────────────────────────────
 
 /** Cloud Storage URL for the curated food database (from py-huckleberry-api). */
-const FOOD_DB_URL =
-  "https://storage.googleapis.com/simpleintervals.appspot.com/foods/fooddb.json";
+const FOOD_DB_URL = "https://storage.googleapis.com/simpleintervals.appspot.com/foods/fooddb.json";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 

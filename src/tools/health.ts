@@ -13,16 +13,7 @@ registerTool(
     child_uid: z.string().min(1, "child_uid is required"),
     type: z.enum(["pee", "poo", "both", "dry"]),
     color: z
-      .enum([
-        "yellow",
-        "brown",
-        "green",
-        "black",
-        "red",
-        "white",
-        "orange",
-        "other",
-      ])
+      .enum(["yellow", "brown", "green", "black", "red", "white", "orange", "other"])
       .optional(),
     consistency: z
       .enum(["hard", "normal", "soft", "runny", "watery", "formed", "mucousy"])
