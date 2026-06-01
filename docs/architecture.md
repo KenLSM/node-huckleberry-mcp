@@ -1,8 +1,8 @@
 # Architecture & T0.2 Spike Findings
 
-Status: **T0.2 (Firestore client strategy spike) — substantially complete.**
-The one remaining check (an authenticated Firestore read) requires real
-Huckleberry credentials; the spike script is ready to run that verification.
+Status: **T0.2 (Firestore client strategy spike) — COMPLETE.** Auth and an
+authenticated `users/{uid}` read were both verified end-to-end against a live
+account via the Firebase JS SDK in Node.
 
 ## Decision
 
@@ -39,7 +39,7 @@ appId     = 1:219218185774:android:a3e215cc246b92b0
 
 | Path | Purpose |
 |---|---|
-| `users/{uid}` | user document (entry point; `get_user`) |
+| `users/{uid}` | user document (entry point; `get_user`). Children are listed here — see below |
 | `childs/{childUid}` | child profile |
 | `sleep/{childUid}` + `…/intervals/{id}` | sleep sessions |
 | `feed/{childUid}` + `…/intervals/{id}` | feeding sessions |
@@ -47,6 +47,20 @@ appId     = 1:219218185774:android:a3e215cc246b92b0
 
 Curated foods are fetched from Cloud Storage object
 `simpleintervals.appspot.com/foods/fooddb.json` (separate from Firestore).
+
+### Child resolution (verified against a live `users/{uid}` doc)
+
+The user document does **not** contain a `childs` map. Child UIDs come from:
+
+- **`childList`** — `list[{ cid, nickname?, picture?, color? }]`. The `cid` is the
+  child UID used as the doc id in `childs/{cid}`, `sleep/{cid}`, `feed/{cid}`, etc.
+  **This is the authoritative source for "list children" (T1.4).**
+- **`hbChilds`** — `map<childUid, { addedAt }>`, parallel to `childList`.
+- **`lastChild`** — UID of the most recently active child (good default selection).
+
+Verified live top-level user keys: `childList, hbChilds, lastChild, email,
+firstname, lastname, latestTimezone, subscription, installedApps, …`.
+(The Python `FirebaseUserDocument` model in `firebase_types.py` matches this.)
 
 ## What the spike verified (no credentials needed)
 
@@ -63,16 +77,12 @@ Run via `curl` and `spike/spike.mjs`:
 3. **Firebase JS SDK initializes in Node** with the config above and reaches the
    live auth endpoint (`firebase@11`).
 
-## What remains (needs real credentials)
+## Verified with real credentials
 
-Confirm an authenticated `getDoc(users/{uid})` returns the user document:
-
-```bash
-cd spike
-HUCKLEBERRY_EMAIL=you@example.com HUCKLEBERRY_PASSWORD='…' node spike.mjs
-```
-
-Expected: `[ok] Authenticated …` then `[ok] users/{uid} read; exists=true`.
+`spike/spike.mjs` was run against a live account: authentication succeeded and
+`getDoc(users/{uid})` returned the user document (`exists=true`). The child-list
+schema above was discovered from that real document. Nothing in T0.2 remains
+open.
 
 ## Implications for the build
 

@@ -39,9 +39,13 @@ try {
   console.log(`[ok] users/${uid} read; exists=${userSnap.exists()}`);
   if (userSnap.exists()) {
     const data = userSnap.data();
-    const childKeys = data.childs ? Object.keys(data.childs) : [];
+    // Children live in childList[].cid (verified live), not a `childs` map.
+    const childUids = Array.isArray(data.childList)
+      ? data.childList.map((c) => c.cid)
+      : [];
     console.log(`[ok] user doc top-level keys: ${Object.keys(data).join(", ")}`);
-    console.log(`[ok] child UIDs: ${childKeys.join(", ") || "(none in users doc)"}`);
+    console.log(`[ok] child UIDs (from childList): ${childUids.join(", ") || "(none)"}`);
+    console.log(`[ok] lastChild: ${data.lastChild ?? "(unset)"}`);
   }
   console.log("\nRESULT: Firebase JS SDK fully replicates the Python data path. ✅");
   process.exit(0);

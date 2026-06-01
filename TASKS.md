@@ -47,7 +47,7 @@ Rules of thumb:
 | ID | Task | Acceptance criterion | Model |
 |---|---|---|---|
 | **T0.1** | Repo scaffolding & tooling: TS project, `package.json`, `tsconfig.json`, ESLint+Prettier, `src/`/`dist/`, `.gitignore`, `.env.example` (`HUCKLEBERRY_EMAIL`, `HUCKLEBERRY_PASSWORD`, `HUCKLEBERRY_TIMEZONE`) | `npm run build` and `npm run lint` pass on a stub | Haiku 4.5 |
-| **T0.2** ✅⚠️ | **Firestore client strategy spike** (highest risk, do first): confirm which Node lib replicates the Python gRPC/Firestore path (`firebase` JS SDK vs `@google-cloud/firestore` vs Admin SDK); verify email/pw auth (Identity Toolkit `signInWithPassword`) and authenticated reads work against the real project config | **DONE** — decision: **Firebase JS SDK**. Config reverse-engineered & live-verified; raw REST ruled out (`ACCESS_TOKEN_TYPE_UNSUPPORTED`). Findings in `docs/architecture.md`, spike in `spike/`. *Final authenticated read pending real creds.* | **Opus 4.8** |
+| **T0.2** ✅ | **Firestore client strategy spike** (highest risk, do first): confirm which Node lib replicates the Python gRPC/Firestore path (`firebase` JS SDK vs `@google-cloud/firestore` vs Admin SDK); verify email/pw auth (Identity Toolkit `signInWithPassword`) and authenticated reads work against the real project config | **DONE & live-verified** — decision: **Firebase JS SDK**. Auth + authenticated `users/{uid}` read confirmed against a real account; raw REST ruled out (`ACCESS_TOKEN_TYPE_UNSUPPORTED`); child-list schema captured (`childList[].cid`). See `docs/architecture.md`, spike in `spike/`. | **Opus 4.8** |
 | **T0.3** | CI pipeline: GitHub Actions for lint, build, unit tests on PR + push | CI green on `main` | Haiku 4.5 |
 
 ---
