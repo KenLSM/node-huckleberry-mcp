@@ -83,7 +83,9 @@ for (const { name, sub } of trackers) {
     parent ? { prefs: parent.prefs ?? null, keys: Object.keys(parent) } : null,
   );
 
-  const snap = await getDocs(query(collection(db, name, cid, sub), limit(3)));
+  // Several entry types share one collection (feed = nursing/bottle/pump-less/solids,
+  // diaper = diaper+potty), so pull enough to capture each variant.
+  const snap = await getDocs(query(collection(db, name, cid, sub), limit(15)));
   if (snap.empty) {
     dump(`${name}/${cid}/${sub} (sample entries)`, null);
   } else {
