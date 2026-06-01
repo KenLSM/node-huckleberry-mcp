@@ -5,7 +5,12 @@ import { createServer } from "./server/index.js";
 
 // Tool categories are registered by importing their modules.
 // Each import calls registerTool() at module load time.
-// (Populated in T2.3–T2.8; importing here once the modules exist.)
+import "./tools/childManagement.js";
+import "./tools/sleep.js";
+import "./tools/feeding.js";
+import "./tools/health.js";
+import "./tools/growth.js";
+import "./tools/solids.js";
 
 async function main() {
   const server = createServer();

@@ -1,6 +1,5 @@
 import { collection, addDoc, Timestamp } from "firebase/firestore";
 import type { HuckleberryClient } from "./HuckleberryClient.js";
-import { DiaperLog, type DiaperLogParsed } from "../models/index.js";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
