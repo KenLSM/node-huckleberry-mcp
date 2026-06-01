@@ -8,7 +8,7 @@ account via the Firebase JS SDK in Node.
 
 **Use the Firebase JS SDK (`firebase` npm package) for both auth and Firestore.**
 It is the natural Node equivalent of the Python `py-huckleberry-api` data path,
-and it is the *supported* client transport for authenticating as a Huckleberry
+and it is the _supported_ client transport for authenticating as a Huckleberry
 end-user and reading/writing Firestore under that user's security rules.
 
 ## How the Python client actually works (verified from source)
@@ -21,7 +21,7 @@ Source: [`Woyken/py-huckleberry-api`](https://github.com/Woyken/py-huckleberry-a
     with `{email, password, returnSecureToken: true}` → returns `idToken`,
     `refreshToken`, `localId` (the user uid), `expiresIn`.
   - Refresh via `POST https://securetoken.googleapis.com/v1/token`.
-- **Data = gRPC Firestore SDK** (`google.cloud.firestore.AsyncClient`), *not* REST.
+- **Data = gRPC Firestore SDK** (`google.cloud.firestore.AsyncClient`), _not_ REST.
   The client is built with `project="simpleintervals"` and a custom
   `FirebaseTokenCredentials` that simply presents the Firebase **ID token** as the
   bearer token. The `FIRESTORE_BASE_URL` REST constant in `const.py` is defined
@@ -37,13 +37,13 @@ appId     = 1:219218185774:android:a3e215cc246b92b0
 
 ### Firestore layout (from api.py)
 
-| Path | Purpose |
-|---|---|
-| `users/{uid}` | user document (entry point; `get_user`). Children are listed here — see below |
-| `childs/{childUid}` | child profile |
-| `sleep/{childUid}` + `…/intervals/{id}` | sleep sessions |
-| `feed/{childUid}` + `…/intervals/{id}` | feeding sessions |
-| `types/{childUid}/custom/{foodId}` | custom solids foods |
+| Path                                    | Purpose                                                                       |
+| --------------------------------------- | ----------------------------------------------------------------------------- |
+| `users/{uid}`                           | user document (entry point; `get_user`). Children are listed here — see below |
+| `childs/{childUid}`                     | child profile                                                                 |
+| `sleep/{childUid}` + `…/intervals/{id}` | sleep sessions                                                                |
+| `feed/{childUid}` + `…/intervals/{id}`  | feeding sessions                                                              |
+| `types/{childUid}/custom/{foodId}`      | custom solids foods                                                           |
 
 Curated foods are fetched from Cloud Storage object
 `simpleintervals.appspot.com/foods/fooddb.json` (separate from Firestore).
@@ -67,7 +67,7 @@ firstname, lastname, latestTimezone, subscription, installedApps, …`.
 Run via `curl` and `spike/spike.mjs`:
 
 1. **Auth endpoint + API key are live** — `signInWithPassword` with bogus creds
-   returns `EMAIL_NOT_FOUND` / `auth/user-not-found`, *not* `API_KEY_INVALID`.
+   returns `EMAIL_NOT_FOUND` / `auth/user-not-found`, _not_ `API_KEY_INVALID`.
 2. **Raw Firestore REST is a dead end for us** — an unauthenticated REST read
    returns `403 PERMISSION_DENIED`, and a Firebase ID token passed as a plain
    `Bearer` returns `401 ACCESS_TOKEN_TYPE_UNSUPPORTED`. The v1 REST API expects a
@@ -94,3 +94,29 @@ open.
   listener-recreation logic like the Python loop-bound gRPC channels need.
 - **Risk retired:** the highest-uncertainty question ("can Node talk to
   Huckleberry's Firestore as the user?") is answered yes, via a first-party SDK.
+
+## Project toolchain (decided in T0.1)
+
+TypeScript throughout, with the **oxc** stack and Vitest — deliberately **not**
+ESLint/Prettier/Jest:
+
+- **`tsc`** — build/type-check (`npm run build`), emits to `dist/`; test files are
+  excluded from the build.
+- **oxlint** (`npm run lint`, `.oxlintrc.json`) — linting.
+- **oxfmt** (`npm run format` / `format:check`, `.oxfmtrc.json`, printWidth 100) —
+  formatting; respects `.gitignore`.
+- **Vitest** (`npm test`) — unit tests in `src/__tests__/`, ESM mocking via
+  `vi.mock` + `vi.hoisted`.
+
+Vitest resolves the source's NodeNext-style `.js` import specifiers via a small
+alias in `vitest.config.ts` (`/^(\.{1,2}\/.*)\.js$/` → `$1`).
+
+## Implementation status
+
+- **T1.1 (auth)** — `src/auth/auth.ts`: `HuckleberryAuth` wraps
+  `signInWithEmailAndPassword`; token refresh is delegated to the SDK
+  (`onIdTokenChanged` + `getIdToken(true)`), with a 5-minute expiry margin.
+- **T1.2 (client)** — `src/client/HuckleberryClient.ts`: owns the Firebase app,
+  auth, and Firestore handle; provides `connect()` + generic
+  read/write/merge/update/delete/add helpers that operation modules build on.
+- Both are covered by Vitest unit tests (firebase mocked).

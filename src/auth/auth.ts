@@ -49,9 +49,7 @@ export class HuckleberryAuth {
    */
   async ensureSession(): Promise<AuthSession> {
     if (!this.session) {
-      throw new Error(
-        "Not authenticated. Call authenticate() before using the client.",
-      );
+      throw new Error("Not authenticated. Call authenticate() before using the client.");
     }
     if (this.isTokenExpiringSoon()) {
       await this.refreshSessionToken();

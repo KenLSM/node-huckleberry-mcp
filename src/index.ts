@@ -6,7 +6,7 @@
  */
 
 const main = async () => {
-  console.log('Huckleberry MCP server stub');
+  console.log("Huckleberry MCP server stub");
 };
 
 main();

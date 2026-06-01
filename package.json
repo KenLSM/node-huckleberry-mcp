@@ -2,36 +2,38 @@
   "name": "node-huckleberry-mcp",
   "version": "0.1.0",
   "description": "Node.js MCP server for Huckleberry child care app",
-  "type": "module",
-  "main": "dist/index.js",
+  "keywords": [
+    "child-care",
+    "huckleberry",
+    "mcp"
+  ],
+  "license": "MIT",
+  "author": "",
   "bin": {
     "node-huckleberry-mcp": "dist/index.js"
   },
+  "type": "module",
+  "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
-    "lint": "eslint src --ext .ts",
-    "lint:fix": "eslint src --ext .ts --fix",
-    "format": "prettier --write 'src/**/*.ts'",
-    "dev": "node --loader tsx src/index.ts"
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "dev": "tsx src/index.ts"
   },
-  "keywords": [
-    "mcp",
-    "huckleberry",
-    "child-care"
-  ],
-  "author": "",
-  "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^0.6.0",
     "firebase": "^10.8.0",
     "zod": "^3.22.4"
   },
   "devDependencies": {
-    "@typescript-eslint/eslint-plugin": "^7.0.0",
-    "@typescript-eslint/parser": "^7.0.0",
-    "eslint": "^8.56.0",
-    "prettier": "^3.2.5",
+    "oxfmt": "^0.52.0",
+    "oxlint": "^1.67.0",
     "tsx": "^4.7.0",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "vitest": "^4.1.8"
   }
 }

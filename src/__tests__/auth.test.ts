@@ -1,28 +1,35 @@
-import { jest, describe, it, expect, beforeEach } from "@jest/globals";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 
-// ── Firebase mock (must use unstable_mockModule for ESM) ───────────────────
+// ── Firebase mock ──────────────────────────────────────────────────────────
+// vi.mock is hoisted, so shared mock fns must come from vi.hoisted().
 
-const mockSignInWithEmailAndPassword = jest.fn();
-const mockOnIdTokenChanged = jest.fn(() => () => {});
-const mockSignOut = jest.fn();
+const { mockSignInWithEmailAndPassword, mockOnIdTokenChanged, mockSignOut, mockAuth } = vi.hoisted(
+  () => {
+    const mockSignOut = vi.fn();
+    const mockAuth = {
+      currentUser: null as {
+        uid: string;
+        getIdToken: ReturnType<typeof vi.fn>;
+        getIdTokenResult: ReturnType<typeof vi.fn>;
+      } | null,
+      signOut: mockSignOut,
+    };
+    return {
+      mockSignInWithEmailAndPassword: vi.fn(),
+      mockOnIdTokenChanged: vi.fn(() => () => {}),
+      mockSignOut,
+      mockAuth,
+    };
+  },
+);
 
-const mockAuth = {
-  currentUser: null as {
-    uid: string;
-    getIdToken: ReturnType<typeof jest.fn>;
-    getIdTokenResult: ReturnType<typeof jest.fn>;
-  } | null,
-  signOut: mockSignOut,
-};
-
-jest.unstable_mockModule("firebase/auth", () => ({
+vi.mock("firebase/auth", () => ({
   getAuth: () => mockAuth,
   signInWithEmailAndPassword: mockSignInWithEmailAndPassword,
   onIdTokenChanged: mockOnIdTokenChanged,
 }));
 
-// Dynamic import after mock registration
-const { HuckleberryAuth } = await import("../auth/auth.js");
+import { HuckleberryAuth } from "../auth/auth";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -30,8 +37,8 @@ function makeUser(uid: string, expiresInMs = 3600_000) {
   const expiresAt = new Date(Date.now() + expiresInMs).toISOString();
   return {
     uid,
-    getIdToken: jest.fn().mockResolvedValue("id-token-" + uid),
-    getIdTokenResult: jest.fn().mockResolvedValue({ expirationTime: expiresAt }),
+    getIdToken: vi.fn().mockResolvedValue("id-token-" + uid),
+    getIdTokenResult: vi.fn().mockResolvedValue({ expirationTime: expiresAt }),
   };
 }
 
@@ -41,7 +48,7 @@ describe("HuckleberryAuth", () => {
   let hbAuth: InstanceType<typeof HuckleberryAuth>;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     mockAuth.currentUser = null;
     mockOnIdTokenChanged.mockReturnValue(() => {});
     hbAuth = new HuckleberryAuth({} as never);
@@ -68,7 +75,7 @@ describe("HuckleberryAuth", () => {
     mockSignInWithEmailAndPassword.mockResolvedValue({ user });
     await hbAuth.authenticate({ email: "a@b.com", password: "pw" });
 
-    const refreshSpy = jest.spyOn(hbAuth, "refreshSessionToken");
+    const refreshSpy = vi.spyOn(hbAuth, "refreshSessionToken");
     const session = await hbAuth.ensureSession();
 
     expect(refreshSpy).not.toHaveBeenCalled();
@@ -82,7 +89,7 @@ describe("HuckleberryAuth", () => {
     await hbAuth.authenticate({ email: "a@b.com", password: "pw" });
 
     const refreshedToken = "id-token-refreshed";
-    (user.getIdToken as ReturnType<typeof jest.fn>).mockResolvedValueOnce(refreshedToken);
+    user.getIdToken.mockResolvedValueOnce(refreshedToken);
 
     const session = await hbAuth.ensureSession();
     expect(session.idToken).toBe(refreshedToken);
@@ -101,7 +108,7 @@ describe("HuckleberryAuth", () => {
     await hbAuth.authenticate({ email: "a@b.com", password: "pw" });
 
     const newToken = "id-token-refreshed";
-    (user.getIdToken as ReturnType<typeof jest.fn>).mockResolvedValueOnce(newToken);
+    user.getIdToken.mockResolvedValueOnce(newToken);
 
     const session = await hbAuth.refreshSessionToken();
     expect(session.idToken).toBe(newToken);

@@ -20,9 +20,7 @@ const firebaseConfig = {
 
 const email = process.env.HUCKLEBERRY_EMAIL ?? "spike-probe@example.invalid";
 const password = process.env.HUCKLEBERRY_PASSWORD ?? "definitely-not-real";
-const haveRealCreds = Boolean(
-  process.env.HUCKLEBERRY_EMAIL && process.env.HUCKLEBERRY_PASSWORD,
-);
+const haveRealCreds = Boolean(process.env.HUCKLEBERRY_EMAIL && process.env.HUCKLEBERRY_PASSWORD);
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -40,9 +38,7 @@ try {
   if (userSnap.exists()) {
     const data = userSnap.data();
     // Children live in childList[].cid (verified live), not a `childs` map.
-    const childUids = Array.isArray(data.childList)
-      ? data.childList.map((c) => c.cid)
-      : [];
+    const childUids = Array.isArray(data.childList) ? data.childList.map((c) => c.cid) : [];
     console.log(`[ok] user doc top-level keys: ${Object.keys(data).join(", ")}`);
     console.log(`[ok] child UIDs (from childList): ${childUids.join(", ") || "(none)"}`);
     console.log(`[ok] lastChild: ${data.lastChild ?? "(unset)"}`);

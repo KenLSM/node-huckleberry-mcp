@@ -1,22 +1,41 @@
-import { jest, describe, it, expect, beforeEach } from "@jest/globals";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 
 // ── Firebase mocks ─────────────────────────────────────────────────────────
+// vi.mock is hoisted, so shared mock fns must come from vi.hoisted().
 
-const mockGetDoc = jest.fn();
-const mockSetDoc = jest.fn();
-const mockUpdateDoc = jest.fn();
-const mockDeleteDoc = jest.fn();
-const mockAddDoc = jest.fn();
-const mockDoc = jest.fn((...args: unknown[]) => ({ __path: (args.slice(1) as string[]).join("/") }));
-const mockCollection = jest.fn((...args: unknown[]) => ({
-  __path: (args.slice(1) as string[]).join("/"),
+const {
+  mockGetDoc,
+  mockSetDoc,
+  mockUpdateDoc,
+  mockDeleteDoc,
+  mockAddDoc,
+  mockDoc,
+  mockCollection,
+  mockAuthenticate,
+  mockEnsureSession,
+  mockGetSession,
+  mockAuthSignOut,
+} = vi.hoisted(() => ({
+  mockGetDoc: vi.fn(),
+  mockSetDoc: vi.fn(),
+  mockUpdateDoc: vi.fn(),
+  mockDeleteDoc: vi.fn(),
+  mockAddDoc: vi.fn(),
+  mockDoc: vi.fn((...args: unknown[]) => ({ __path: (args.slice(1) as string[]).join("/") })),
+  mockCollection: vi.fn((...args: unknown[]) => ({
+    __path: (args.slice(1) as string[]).join("/"),
+  })),
+  mockAuthenticate: vi.fn(),
+  mockEnsureSession: vi.fn(),
+  mockGetSession: vi.fn(),
+  mockAuthSignOut: vi.fn(),
 }));
 
-jest.unstable_mockModule("firebase/app", () => ({
+vi.mock("firebase/app", () => ({
   initializeApp: () => ({}),
 }));
 
-jest.unstable_mockModule("firebase/firestore", () => ({
+vi.mock("firebase/firestore", () => ({
   getFirestore: () => ({}),
   doc: mockDoc,
   collection: mockCollection,
@@ -27,22 +46,16 @@ jest.unstable_mockModule("firebase/firestore", () => ({
   addDoc: mockAddDoc,
 }));
 
-const mockAuthenticate = jest.fn();
-const mockEnsureSession = jest.fn();
-const mockGetSession = jest.fn();
-const mockAuthSignOut = jest.fn();
-
-jest.unstable_mockModule("../auth/auth.js", () => ({
-  HuckleberryAuth: jest.fn().mockImplementation(() => ({
-    authenticate: mockAuthenticate,
-    ensureSession: mockEnsureSession,
-    getSession: mockGetSession,
-    signOut: mockAuthSignOut,
-  })),
+vi.mock("../auth/auth.js", () => ({
+  HuckleberryAuth: class {
+    authenticate = mockAuthenticate;
+    ensureSession = mockEnsureSession;
+    getSession = mockGetSession;
+    signOut = mockAuthSignOut;
+  },
 }));
 
-// Dynamic imports after mock registration
-const { HuckleberryClient } = await import("../client/HuckleberryClient.js");
+import { HuckleberryClient } from "../client/HuckleberryClient";
 
 // ── Tests ──────────────────────────────────────────────────────────────────
 
@@ -53,7 +66,7 @@ describe("HuckleberryClient", () => {
   let client: InstanceType<typeof HuckleberryClient>;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     client = new HuckleberryClient({ credentials: CREDS });
   });
 

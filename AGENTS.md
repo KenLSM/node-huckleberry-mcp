@@ -15,10 +15,10 @@ Most design/behavior is lifted from these; credit them (see **T3.7** in `TASKS.m
 
 ## Architecture (two layers — keep them separate)
 
-| Layer | What | Node choice |
-|---|---|---|
+| Layer      | What                          | Node choice                                                            |
+| ---------- | ----------------------------- | ---------------------------------------------------------------------- |
 | API client | Auth + Firestore reads/writes | **Firebase JS SDK** (`firebase` npm) — decided & live-verified in T0.2 |
-| MCP server | Exposes tools over MCP | `@modelcontextprotocol/sdk` (official TS SDK) |
+| MCP server | Exposes tools over MCP        | `@modelcontextprotocol/sdk` (official TS SDK)                          |
 
 Read **`docs/architecture.md`** before touching the client layer — it has the
 verified auth mechanism, the live Firebase config, the Firestore collection
@@ -34,9 +34,14 @@ layout, and the child-resolution schema (`childList[].cid`). Key facts:
 
 ```
 TASKS.md             # the roadmap — the source of truth for what to build & in what order
-docs/architecture.md # T0.2 findings: auth/data mechanism, config, schema
+docs/architecture.md # T0.2 findings: auth/data mechanism, config, schema, toolchain
 spike/               # throwaway T0.2 validation script (not the real client)
-src/                 # (to be created in T0.1) the actual client + MCP server
+src/
+  config.ts          # public Firebase client config
+  auth/              # HuckleberryAuth — sign-in + token refresh (T1.1)
+  client/            # HuckleberryClient — Firestore read/write base (T1.2)
+  __tests__/         # Vitest unit tests
+  index.ts           # entry point (MCP server bootstrap lands here in T2.1)
 ```
 
 ## How to pick up work
@@ -52,14 +57,29 @@ src/                 # (to be created in T0.1) the actual client + MCP server
 
 ## Conventions
 
-- **Language:** TypeScript, ES modules, `async/await`. Model the Python `*.py`
-  source closely — method names and Firestore paths should be recognizable
-  across the two codebases.
+- **Language:** TypeScript, ES modules, `async/await`. Source uses NodeNext-style
+  explicit `.js` import specifiers (e.g. `import … from "../auth/index.js"`) — keep
+  this; the build and Vitest are configured for it. Model the Python `*.py` source
+  closely — method names and Firestore paths should be recognizable across the two
+  codebases.
 - **Validation:** use Zod for Firestore document models (the analog of the
   Python Pydantic `firebase_types.py`).
-- **Build/test/lint:** tooling is established in **T0.1**. Once it exists, run
-  `npm run build` and `npm run lint` before committing, and add tests alongside
-  new client/tool code. Until then, this section will be updated by T0.1.
+
+### Toolchain (established in T0.1)
+
+The project uses the **oxc** stack plus Vitest — **not** ESLint/Prettier/Jest.
+Run these before committing; all must be green (these become the T0.3 CI gates):
+
+| Command                | Tool              | Purpose                                                   |
+| ---------------------- | ----------------- | --------------------------------------------------------- |
+| `npm run build`        | `tsc`             | Type-check + emit to `dist/` (tests excluded from build)  |
+| `npm run lint`         | **oxlint**        | Lint (`.oxlintrc.json`)                                   |
+| `npm run format`       | **oxfmt**         | Format in place (`.oxfmtrc.json`, printWidth 100)         |
+| `npm run format:check` | **oxfmt --check** | Verify formatting                                         |
+| `npm test`             | **Vitest**        | Unit tests (`vitest run`); `npm run test:watch` for watch |
+
+Add tests (`*.test.ts` under `src/__tests__/`) alongside new client/tool code.
+Vitest mocks ESM via `vi.mock` + `vi.hoisted` (see existing tests for the pattern).
 
 ## Secrets & safety
 
