@@ -2,29 +2,38 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // ── Firebase mock ──────────────────────────────────────────────────────────
 
-const { mockAddDoc, mockUpdateDoc, mockGetDocs, mockQuery, mockCollection, mockDoc, mockOrderBy, mockLimit, MockTimestamp } =
-  vi.hoisted(() => {
-    const now = new Date("2024-01-15T10:00:00Z");
-    class MockTimestamp {
-      static now() {
-        return { seconds: Math.floor(now.getTime() / 1000), nanoseconds: 0 };
-      }
-      static fromDate(d: Date) {
-        return { seconds: Math.floor(d.getTime() / 1000), nanoseconds: 0 };
-      }
+const {
+  mockAddDoc,
+  mockUpdateDoc,
+  mockGetDocs,
+  mockQuery,
+  mockCollection,
+  mockDoc,
+  mockOrderBy,
+  mockLimit,
+  MockTimestamp,
+} = vi.hoisted(() => {
+  const now = new Date("2024-01-15T10:00:00Z");
+  class MockTimestamp {
+    static now() {
+      return { seconds: Math.floor(now.getTime() / 1000), nanoseconds: 0 };
     }
-    return {
-      mockAddDoc: vi.fn(),
-      mockUpdateDoc: vi.fn(),
-      mockGetDocs: vi.fn(),
-      mockQuery: vi.fn((...args: unknown[]) => ({ __query: args })),
-      mockCollection: vi.fn((_db: unknown, path: string) => ({ __path: path })),
-      mockDoc: vi.fn((_db: unknown, path: string, id: string) => ({ __path: `${path}/${id}` })),
-      mockOrderBy: vi.fn(() => ({ __orderBy: true })),
-      mockLimit: vi.fn(() => ({ __limit: true })),
-      MockTimestamp,
-    };
-  });
+    static fromDate(d: Date) {
+      return { seconds: Math.floor(d.getTime() / 1000), nanoseconds: 0 };
+    }
+  }
+  return {
+    mockAddDoc: vi.fn(),
+    mockUpdateDoc: vi.fn(),
+    mockGetDocs: vi.fn(),
+    mockQuery: vi.fn((...args: unknown[]) => ({ __query: args })),
+    mockCollection: vi.fn((_db: unknown, path: string) => ({ __path: path })),
+    mockDoc: vi.fn((_db: unknown, path: string, id: string) => ({ __path: `${path}/${id}` })),
+    mockOrderBy: vi.fn(() => ({ __orderBy: true })),
+    mockLimit: vi.fn(() => ({ __limit: true })),
+    MockTimestamp,
+  };
+});
 
 vi.mock("firebase/firestore", () => ({
   collection: mockCollection,
