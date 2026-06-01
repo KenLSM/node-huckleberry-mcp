@@ -23,7 +23,7 @@ const USER_DOC = {
 
 const CHILD_DOC = {
   name: "Ada",
-  sex: "female",
+  gender: "female",
 };
 
 // ── Tests ──────────────────────────────────────────────────────────────────
@@ -56,7 +56,7 @@ describe("getChild()", () => {
     const client = makeClient(() => CHILD_DOC);
     const result = await getChild(client, "child-1");
     expect(result?.name).toBe("Ada");
-    expect(result?.sex).toBe("female");
+    expect(result?.gender).toBe("female");
   });
 
   it("returns null when child doc missing", async () => {
