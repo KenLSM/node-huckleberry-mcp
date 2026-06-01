@@ -98,7 +98,7 @@ Rules of thumb:
 | **T3.3** | MCP smoke test via MCP Inspector / scripted client listing & calling each tool | Every tool lists and returns without crashing | Haiku 4.5 |
 | **T3.4** | README: install, env config, Claude Desktop `mcpServers` snippet, tool catalog | A new user can configure & run from the README alone | Haiku 4.5 |
 | **T3.5** | npm packaging: `bin` for `npx`, publish workflow, semver | `npx node-huckleberry-mcp` launches the server | Haiku 4.5 |
-| **T3.6** | `CLAUDE.md`: architecture + conventions for future agent contributors | Present and accurate | Haiku 4.5 |
+| **T3.6** 🟡 | Contributor guide for humans & agents: **`AGENTS.md`** (canonical) + `CLAUDE.md` pointer — architecture, conventions, how to pick up tasks, secrets/safety | Present and accurate; kept in sync as the codebase grows | Haiku 4.5 |
 | **T3.7** | **Attribution & license compliance**: this port lifts most of its design/behavior from the two MIT source repos, so credit them properly. (a) Add a `LICENSE` (MIT) for this project; (b) add a `NOTICE`/`THIRD-PARTY` file or README "Credits" section reproducing the MIT text + copyright lines for `py-huckleberry-api` (© 2025 Woyken) and `py-huckleberry-mcp` (© 2026 Huckleberry MCP Contributors), with links; (c) credit both prominently at the top of the README as the upstream this is ported from | Both upstream MIT notices + copyrights are reproduced and linked; README clearly states this is a Node port of the two projects | Haiku 4.5 |
 
 ---
