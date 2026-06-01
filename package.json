@@ -38,6 +38,8 @@
     "format:check": "oxfmt --check",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:integration": "vitest run live.integration",
+    "inspect:schema": "node scripts/inspect-schema.mjs",
     "dev": "tsx src/index.ts",
     "smoke": "npm run build && npm test -- integration.test.ts",
     "prepublishOnly": "npm run build && npm test"
