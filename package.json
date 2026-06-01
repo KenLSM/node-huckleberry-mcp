@@ -1,19 +1,35 @@
 {
   "name": "node-huckleberry-mcp",
   "version": "0.1.0",
-  "description": "Node.js MCP server for Huckleberry child care app",
+  "description": "Node.js MCP server for Huckleberry baby tracker. Expose sleep, feeding, growth, diapers, and solids data to Claude and other AI applications.",
   "keywords": [
-    "child-care",
+    "mcp",
+    "model-context-protocol",
     "huckleberry",
-    "mcp"
+    "baby-tracker",
+    "claude",
+    "ai"
   ],
   "license": "MIT",
-  "author": "",
+  "author": "KenLSM",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/KenLSM/node-huckleberry-mcp.git"
+  },
+  "homepage": "https://github.com/KenLSM/node-huckleberry-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/KenLSM/node-huckleberry-mcp/issues"
+  },
   "bin": {
     "node-huckleberry-mcp": "dist/index.js"
   },
   "type": "module",
   "main": "dist/index.js",
+  "files": [
+    "dist/",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsc",
     "lint": "oxlint",
@@ -22,7 +38,9 @@
     "format:check": "oxfmt --check",
     "test": "vitest run",
     "test:watch": "vitest",
-    "dev": "tsx src/index.ts"
+    "dev": "tsx src/index.ts",
+    "smoke": "npm run build && npm test -- integration.test.ts",
+    "prepublishOnly": "npm run build && npm test"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^0.6.0",
@@ -35,5 +53,9 @@
     "tsx": "^4.7.0",
     "typescript": "^5.3.3",
     "vitest": "^4.1.8"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
   }
 }
