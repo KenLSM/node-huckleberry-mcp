@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { TimestampSchema } from "./timestamp.js";
 
 export const ChildListEntry = z.object({
   cid: z.string().min(1, "Child UID required"),
@@ -11,9 +12,9 @@ export type ChildListEntryParsed = z.infer<typeof ChildListEntry>;
 
 export const FirebaseUserDocument = z.object({
   childList: z.array(ChildListEntry).default([]),
-  hbChilds: z.record(z.object({ addedAt: z.number().optional() })).default({}),
+  hbChilds: z.record(z.object({ addedAt: TimestampSchema.optional() })).default({}),
   lastChild: z.string().optional(),
-  email: z.string().email().optional(),
+  email: z.string().optional(),
   firstname: z.string().optional(),
   lastname: z.string().optional(),
   latestTimezone: z.string().optional(),

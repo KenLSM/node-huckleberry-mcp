@@ -1,14 +1,17 @@
 // Data models for Huckleberry Firestore documents
 // Zod-based validation schemas matching firebase_types.py from py-huckleberry-api
 
+export { TimestampSchema } from "./timestamp.js";
+export type { HbTimestamp } from "./timestamp.js";
+
 export { FirebaseUserDocument, ChildListEntry } from "./user.js";
 export type { FirebaseUserDocumentParsed, ChildListEntryParsed } from "./user.js";
 
 export { ChildDocument } from "./child.js";
 export type { ChildDocumentParsed } from "./child.js";
 
-export { SleepInterval } from "./sleep.js";
-export type { SleepIntervalParsed } from "./sleep.js";
+export { SleepInterval, SleepTypeSchema } from "./sleep.js";
+export type { SleepIntervalParsed, SleepType } from "./sleep.js";
 
 export { FeedingInterval } from "./feed.js";
 export type { FeedingIntervalParsed } from "./feed.js";

@@ -1,20 +1,23 @@
 import { z } from "zod";
+import { TimestampSchema } from "./timestamp.js";
 
 export const FeedingInterval = z.object({
-  id: z.string().min(1, "Feeding interval ID required"),
-  childUid: z.string().min(1, "Child UID required"),
-  startTime: z.number(), // Unix timestamp
-  endTime: z.number().optional(),
-  type: z
-    .enum(["nursing", "bottle", "pump", "mixed"])
-    .default("nursing"),
-  side: z.enum(["left", "right", "both"]).optional(), // For nursing
-  duration: z.number().optional(), // In minutes
-  amount: z.number().optional(), // In ml for bottles
+  id: z.string().optional(),
+  childUid: z.string().optional(),
+  cid: z.string().optional(),
+  startTime: TimestampSchema,
+  endTime: TimestampSchema.optional(),
+  pauseTime: TimestampSchema.optional(),
+  type: z.enum(["nursing", "bottle", "pump", "mixed"]).default("nursing"),
+  side: z.enum(["left", "right", "both"]).optional(),
+  duration: z.number().optional(),
+  amount: z.number().optional(),
+  amountUnit: z.enum(["ml", "oz"]).optional(),
   note: z.string().optional(),
-  createdAt: z.number(),
-  updatedAt: z.number(),
-  status: z.enum(["active", "paused", "completed"]).default("active"),
+  notes: z.string().optional(),
+  status: z.enum(["active", "paused", "completed", "cancelled"]).default("active"),
+  createdAt: TimestampSchema.optional(),
+  updatedAt: TimestampSchema.optional(),
 });
 
 export type FeedingIntervalParsed = z.infer<typeof FeedingInterval>;

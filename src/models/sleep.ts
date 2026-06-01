@@ -1,14 +1,22 @@
 import { z } from "zod";
+import { TimestampSchema } from "./timestamp.js";
+
+export const SleepTypeSchema = z.enum(["nap", "night"]);
+export type SleepType = z.infer<typeof SleepTypeSchema>;
 
 export const SleepInterval = z.object({
-  id: z.string().min(1, "Sleep interval ID required"),
-  childUid: z.string().min(1, "Child UID required"),
-  startTime: z.number(), // Unix timestamp
-  endTime: z.number().optional(),
+  id: z.string().optional(),
+  childUid: z.string().optional(),
+  cid: z.string().optional(),
+  startTime: TimestampSchema,
+  endTime: TimestampSchema.optional(),
+  pauseTime: TimestampSchema.optional(),
+  status: z.enum(["active", "paused", "completed", "cancelled"]).default("active"),
+  type: SleepTypeSchema.optional(),
   note: z.string().optional(),
-  createdAt: z.number(),
-  updatedAt: z.number(),
-  status: z.enum(["active", "paused", "completed"]).default("active"),
+  notes: z.string().optional(),
+  createdAt: TimestampSchema.optional(),
+  updatedAt: TimestampSchema.optional(),
 });
 
 export type SleepIntervalParsed = z.infer<typeof SleepInterval>;
