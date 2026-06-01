@@ -1,0 +1,8 @@
+{
+  "name": "hb-spike",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "firebase": "^11.0.0"
+  }
+}
