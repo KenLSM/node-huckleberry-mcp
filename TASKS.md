@@ -76,8 +76,8 @@ Rules of thumb:
 
 | ID       | Task                                                                                                                                   | Acceptance criterion                                | Model      |
 | -------- | -------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- | ---------- |
-| **T2.1** | MCP server bootstrap: stdio server with `@modelcontextprotocol/sdk`, tool-registration helper, schema-from-Zod, central error handling | Server starts; tools listable via MCP Inspector     | Sonnet 4.6 |
-| **T2.2** | Lazy authentication wiring: creds from env, validated on first tool call                                                               | First call authenticates; bad creds error clearly   | Sonnet 4.6 |
+| **T2.1** ✅ | MCP server bootstrap: stdio server with `@modelcontextprotocol/sdk`, tool-registration helper, schema-from-Zod, central error handling | **DONE** — `src/server/server.ts` (`createServer`, `registerTool`, Zod→JSON Schema), `src/server/errors.ts` (`toErrorResult`, `withErrorHandling`), unit-tested | Sonnet 4.6 |
+| **T2.2** ✅ | Lazy authentication wiring: creds from env, validated on first tool call                                                               | **DONE** — `src/server/auth.ts` (`getClient` singleton from env); missing-creds error tested                  | Sonnet 4.6 |
 | **T2.3** | Tools: Child Management (2)                                                                                                            | Tools invoke T1.4 client, return structured results | Haiku 4.5  |
 | **T2.4** | Tools: Sleep (7)                                                                                                                       | Tools invoke T1.5 client                            | Haiku 4.5  |
 | **T2.5** | Tools: Feeding (8)                                                                                                                     | Tools invoke T1.6 client                            | Haiku 4.5  |
