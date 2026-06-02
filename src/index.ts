@@ -8,7 +8,7 @@ import { createServer } from "./server/index.js";
 import "./tools/childManagement.js";
 import "./tools/sleep.js";
 import "./tools/feeding.js";
-import "./tools/health.js";
+import "./tools/diaper.js";
 import "./tools/growth.js";
 import "./tools/solids.js";
 

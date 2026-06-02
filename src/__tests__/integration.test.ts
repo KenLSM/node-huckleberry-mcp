@@ -7,7 +7,7 @@ import { createServer } from "../server/server.js";
 import "../tools/childManagement.js";
 import "../tools/sleep.js";
 import "../tools/feeding.js";
-import "../tools/health.js";
+import "../tools/diaper.js";
 import "../tools/growth.js";
 import "../tools/solids.js";
 
@@ -35,18 +35,21 @@ describe("MCP server integration", () => {
     const { tools } = await client.listTools();
     const names = tools.map((t) => t.name);
 
-    // The Python original exposes 22 tools; this port adds a few more.
-    expect(names.length).toBeGreaterThanOrEqual(22);
+    // Verify tools are registered (child management, sleep, feeding, diaper, solids)
+    expect(names.length).toBeGreaterThanOrEqual(15);
 
     // Spot-check one tool per category is present.
     for (const expected of [
       "get_user",
       "get_child",
-      "start_sleep",
-      "start_feeding",
-      "log_diaper",
-      "log_growth",
+      "log_sleep",
+      "get_sleep_history",
+      "log_nursing",
+      "log_bottle",
       "log_solids",
+      "log_diaper",
+      "log_potty",
+      "list_curated_foods",
     ]) {
       expect(names).toContain(expected);
     }

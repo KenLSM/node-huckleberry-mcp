@@ -2,31 +2,34 @@ import { z } from "zod";
 import { registerTool } from "../server/server.js";
 import { getClient } from "../server/auth.js";
 import {
-  startNursing,
-  pauseNursing,
-  resumeNursing,
-  switchNursingSide,
-  completeNursing,
+  logNursing,
   logBottle,
+  logSolids,
   logPump,
   listPumpIntervals,
   getFeedHistory,
 } from "../client/index.js";
 
-// T2.5: Feeding Tools (8 tools)
+// T2.5: Feeding Tools (6 tools)
 
-// start_feeding — begin a new feeding session
+// log_nursing — log a nursing session
 registerTool(
-  "start_feeding",
-  "Start a new nursing session for a child",
+  "log_nursing",
+  "Log a nursing session",
   z.object({
     child_uid: z.string().min(1, "child_uid is required"),
-    side: z.enum(["left", "right", "both"]).optional(),
+    start: z.number().min(0, "start is required (epoch seconds)"),
+    left_duration: z.number().optional(),
+    right_duration: z.number().optional(),
+    last_side: z.enum(["left", "right"]).optional(),
   }),
   async (input) => {
     const client = await getClient();
-    const id = await startNursing(client, input.child_uid, {
-      side: input.side,
+    const id = await logNursing(client, input.child_uid, {
+      start: input.start,
+      leftDuration: input.left_duration,
+      rightDuration: input.right_duration,
+      lastSide: input.last_side,
     });
     return {
       content: [
@@ -39,116 +42,25 @@ registerTool(
   },
 );
 
-// pause_feeding — pause an active feeding session
-registerTool(
-  "pause_feeding",
-  "Pause an active nursing session",
-  z.object({
-    child_uid: z.string().min(1, "child_uid is required"),
-    feed_id: z.string().min(1, "feed_id is required"),
-  }),
-  async (input) => {
-    const client = await getClient();
-    await pauseNursing(client, input.child_uid, input.feed_id);
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify({ success: true }, null, 2),
-        },
-      ],
-    };
-  },
-);
-
-// resume_feeding — resume a paused feeding session
-registerTool(
-  "resume_feeding",
-  "Resume a paused nursing session",
-  z.object({
-    child_uid: z.string().min(1, "child_uid is required"),
-    feed_id: z.string().min(1, "feed_id is required"),
-  }),
-  async (input) => {
-    const client = await getClient();
-    await resumeNursing(client, input.child_uid, input.feed_id);
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify({ success: true }, null, 2),
-        },
-      ],
-    };
-  },
-);
-
-// switch_feeding_side — switch nursing side during a session
-registerTool(
-  "switch_feeding_side",
-  "Switch nursing side during an active nursing session",
-  z.object({
-    child_uid: z.string().min(1, "child_uid is required"),
-    feed_id: z.string().min(1, "feed_id is required"),
-    side: z.enum(["left", "right"]),
-  }),
-  async (input) => {
-    const client = await getClient();
-    await switchNursingSide(client, input.child_uid, input.feed_id, input.side);
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify({ success: true }, null, 2),
-        },
-      ],
-    };
-  },
-);
-
-// complete_feeding — mark a feeding session as completed
-registerTool(
-  "complete_feeding",
-  "Mark a nursing session as completed",
-  z.object({
-    child_uid: z.string().min(1, "child_uid is required"),
-    feed_id: z.string().min(1, "feed_id is required"),
-  }),
-  async (input) => {
-    const client = await getClient();
-    await completeNursing(client, input.child_uid, input.feed_id);
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify({ success: true }, null, 2),
-        },
-      ],
-    };
-  },
-);
-
 // log_bottle — log a bottle feeding
 registerTool(
   "log_bottle",
-  "Log a bottle feeding session",
+  "Log a bottle feeding",
   z.object({
     child_uid: z.string().min(1, "child_uid is required"),
-    start_time: z.number().min(0, "start_time is required (Unix timestamp)"),
-    end_time: z.number().min(0, "end_time is required (Unix timestamp)"),
-    amount: z.number().min(0, "amount in ml is required"),
-    note: z.string().optional(),
+    start: z.number().min(0, "start is required (epoch seconds)"),
+    amount: z.number().min(0, "amount is required"),
+    bottle_type: z.string().min(1, "bottle_type is required (e.g. Breast Milk, Formula)"),
+    units: z.enum(["ml", "oz"]),
   }),
   async (input) => {
     const client = await getClient();
-    const id = await logBottle(
-      client,
-      input.child_uid,
-      new Date(input.start_time),
-      new Date(input.end_time),
-      input.amount,
-      { notes: input.note },
-    );
+    const id = await logBottle(client, input.child_uid, {
+      start: input.start,
+      amount: input.amount,
+      bottleType: input.bottle_type,
+      units: input.units,
+    });
     return {
       content: [
         {
@@ -160,27 +72,53 @@ registerTool(
   },
 );
 
-// log_pump — log a pumped milk feeding
+// log_solids — log solids feeding
 registerTool(
-  "log_pump",
-  "Log a pumped milk feeding session",
+  "log_solids",
+  "Log a solids feeding",
   z.object({
     child_uid: z.string().min(1, "child_uid is required"),
-    start_time: z.number().min(0, "start_time is required (Unix timestamp)"),
-    end_time: z.number().min(0, "end_time is required (Unix timestamp)"),
-    amount: z.number().min(0, "amount in ml is required"),
-    note: z.string().optional(),
+    start: z.number().min(0, "start is required (epoch seconds)"),
   }),
   async (input) => {
     const client = await getClient();
-    const id = await logPump(
-      client,
-      input.child_uid,
-      new Date(input.start_time),
-      new Date(input.end_time),
-      input.amount,
-      { notes: input.note },
-    );
+    const id = await logSolids(client, input.child_uid, {
+      start: input.start,
+    });
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify({ feed_id: id }, null, 2),
+        },
+      ],
+    };
+  },
+);
+
+// log_pump — log a pumping session
+registerTool(
+  "log_pump",
+  "Log a pumping session",
+  z.object({
+    child_uid: z.string().min(1, "child_uid is required"),
+    start: z.number().min(0, "start is required (epoch seconds)"),
+    left_amount: z.number().min(0),
+    right_amount: z.number().min(0),
+    units: z.enum(["ml", "oz"]),
+    duration: z.number().optional(),
+    total_amount: z.number().optional(),
+  }),
+  async (input) => {
+    const client = await getClient();
+    const id = await logPump(client, input.child_uid, {
+      start: input.start,
+      leftAmount: input.left_amount,
+      rightAmount: input.right_amount,
+      units: input.units,
+      duration: input.duration,
+      totalAmount: input.total_amount,
+    });
     return {
       content: [
         {
@@ -198,7 +136,7 @@ registerTool(
   "Retrieve pump sessions for a child",
   z.object({
     child_uid: z.string().min(1, "child_uid is required"),
-    limit: z.number().min(1).default(10),
+    limit: z.number().min(1).default(50),
   }),
   async (input) => {
     const client = await getClient();
@@ -222,7 +160,7 @@ registerTool(
   "Retrieve feeding history for a child",
   z.object({
     child_uid: z.string().min(1, "child_uid is required"),
-    limit: z.number().min(1).default(10),
+    limit: z.number().min(1).default(50),
   }),
   async (input) => {
     const client = await getClient();

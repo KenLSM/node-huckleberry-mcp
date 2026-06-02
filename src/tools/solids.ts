@@ -1,9 +1,10 @@
 import { z } from "zod";
 import { registerTool } from "../server/server.js";
 import { getClient } from "../server/auth.js";
-import { listCuratedFoods, listCustomFoods, createCustomFood, logSolids } from "../client/index.js";
+import { listCuratedFoods, listCustomFoods, createCustomFood } from "../client/index.js";
 
-// T2.8: Solids Tools (4 tools, optional in the original spec)
+// T2.8: Solids / Food Tools (3 tools)
+// Note: log_solids is in feeding.ts (log_solids is part of the feed collection)
 
 // list_curated_foods — retrieve curated food database
 registerTool(
@@ -14,7 +15,6 @@ registerTool(
   }),
   async (input) => {
     const result = await listCuratedFoods();
-    // Apply limit in memory
     const limited = result.slice(0, input.limit);
     return {
       content: [
@@ -69,35 +69,6 @@ registerTool(
         {
           type: "text",
           text: JSON.stringify({ food_id: id }, null, 2),
-        },
-      ],
-    };
-  },
-);
-
-// log_solids — log a solids feeding
-registerTool(
-  "log_solids",
-  "Log a solids feeding for a child",
-  z.object({
-    child_uid: z.string().min(1, "child_uid is required"),
-    food_ids: z.array(z.string().min(1)).min(1, "At least one food ID is required"),
-    amount: z.number().optional(),
-    note: z.string().optional(),
-    date: z.number().optional(), // Unix timestamp (defaults to now)
-  }),
-  async (input) => {
-    const client = await getClient();
-    const id = await logSolids(client, input.child_uid, input.food_ids, {
-      amount: input.amount,
-      notes: input.note,
-      time: input.date ? new Date(input.date) : undefined,
-    });
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify({ solids_id: id }, null, 2),
         },
       ],
     };

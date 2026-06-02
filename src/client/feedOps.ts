@@ -1,36 +1,147 @@
-import {
-  collection,
-  addDoc,
-  doc,
-  updateDoc,
-  getDocs,
-  query,
-  orderBy,
-  limit,
-  Timestamp,
-} from "firebase/firestore";
+import { collection, getDocs, query, orderBy, limit } from "firebase/firestore";
 import type { HuckleberryClient } from "./HuckleberryClient.js";
 import { FeedingInterval, type FeedingIntervalParsed } from "../models/index.js";
+import { writeIntervalWithPrefs } from "./prefs.js";
 
-// ── Types ──────────────────────────────────────────────────────────────────
+// ── Nursing ────────────────────────────────────────────────────────────────
 
-export type FeedType = "nursing" | "bottle" | "pump";
-export type NursingSide = "left" | "right" | "both";
-
-function feedIntervalsPath(childUid: string) {
-  return `feed/${childUid}/intervals`;
+export interface LogNursingOptions {
+  start: number;
+  leftDuration?: number;
+  rightDuration?: number;
+  lastSide?: "left" | "right";
+  time?: Date;
 }
 
-function nowTs() {
-  return Timestamp.now();
+/** Logs a nursing session. Returns the new interval ID. */
+export async function logNursing(
+  client: HuckleberryClient,
+  childUid: string,
+  options: LogNursingOptions,
+): Promise<string> {
+  const eventDate = options.time ?? new Date();
+  const offset = client.getOffsetMinutes(eventDate);
+  const lastUpdated = Date.now() / 1000;
+
+  return writeIntervalWithPrefs(client, {
+    collectionName: "feed",
+    subcollection: "intervals",
+    childUid,
+    interval: {
+      mode: "breast",
+      start: options.start,
+      offset,
+      ...(options.leftDuration !== undefined && { leftDuration: options.leftDuration }),
+      ...(options.rightDuration !== undefined && { rightDuration: options.rightDuration }),
+      ...(options.lastSide !== undefined && { lastSide: options.lastSide }),
+      lastUpdated,
+    },
+    prefs: {
+      lastFeed: {
+        mode: "breast",
+        start: options.start,
+        offset,
+        duration: ((options.leftDuration ?? 0) + (options.rightDuration ?? 0)) / 1000,
+      },
+      ...(options.lastSide !== undefined && {
+        lastSide: { lastSide: options.lastSide, start: options.start },
+      }),
+    },
+  });
 }
 
-// ── History ────────────────────────────────────────────────────────────────
+// ── Bottle ─────────────────────────────────────────────────────────────────
+
+export interface LogBottleOptions {
+  start: number;
+  amount: number;
+  bottleType: string;
+  units: "ml" | "oz";
+  time?: Date;
+}
+
+/** Logs a bottle feeding. Returns the new interval ID. */
+export async function logBottle(
+  client: HuckleberryClient,
+  childUid: string,
+  options: LogBottleOptions,
+): Promise<string> {
+  const eventDate = options.time ?? new Date();
+  const offset = client.getOffsetMinutes(eventDate);
+  const lastUpdated = Date.now() / 1000;
+
+  return writeIntervalWithPrefs(client, {
+    collectionName: "feed",
+    subcollection: "intervals",
+    childUid,
+    interval: {
+      mode: "bottle",
+      start: options.start,
+      offset,
+      amount: options.amount,
+      bottleType: options.bottleType,
+      units: options.units,
+      lastUpdated,
+    },
+    prefs: {
+      lastFeed: {
+        mode: "bottle",
+        start: options.start,
+        offset,
+        duration: 0,
+      },
+      bottleAmount: options.amount,
+      bottleUnits: options.units,
+      bottleType: options.bottleType,
+    },
+  });
+}
+
+// ── Solids ─────────────────────────────────────────────────────────────────
+
+export interface LogSolidsOptions {
+  start: number;
+  time?: Date;
+}
+
+/** Logs a solids feeding. Returns the new interval ID. */
+export async function logSolids(
+  client: HuckleberryClient,
+  childUid: string,
+  options: LogSolidsOptions,
+): Promise<string> {
+  const eventDate = options.time ?? new Date();
+  const offset = client.getOffsetMinutes(eventDate);
+  const lastUpdated = Date.now() / 1000;
+
+  return writeIntervalWithPrefs(client, {
+    collectionName: "feed",
+    subcollection: "intervals",
+    childUid,
+    interval: {
+      mode: "solids",
+      start: options.start,
+      offset,
+      lastUpdated,
+    },
+    prefs: {
+      lastFeed: {
+        mode: "solids",
+        start: options.start,
+        offset,
+        duration: 0,
+      },
+    },
+  });
+}
+
+// ── Feed History ───────────────────────────────────────────────────────────
 
 export interface FeedHistoryOptions {
   limit?: number;
 }
 
+/** Returns feed intervals for a child, ordered by start descending. */
 export async function getFeedHistory(
   client: HuckleberryClient,
   childUid: string,
@@ -38,200 +149,81 @@ export async function getFeedHistory(
 ): Promise<FeedingIntervalParsed[]> {
   await client.connect();
   const db = client.getFirestore();
-  const col = collection(db, feedIntervalsPath(childUid));
-  const q = query(col, orderBy("startTime", "desc"), limit(options.limit ?? 50));
+  const col = collection(db, "feed", childUid, "intervals");
+  const q = query(col, orderBy("start", "desc"), limit(options.limit ?? 50));
   const snap = await getDocs(q);
   return snap.docs.map((d) => FeedingInterval.parse(d.data()));
-}
-
-// ── Nursing ────────────────────────────────────────────────────────────────
-
-export interface StartNursingOptions {
-  side?: NursingSide;
-  notes?: string;
-  startTime?: Date;
-}
-
-/** Starts a nursing session. Returns the new interval ID. */
-export async function startNursing(
-  client: HuckleberryClient,
-  childUid: string,
-  options: StartNursingOptions = {},
-): Promise<string> {
-  await client.connect();
-  const db = client.getFirestore();
-  const col = collection(db, feedIntervalsPath(childUid));
-  const ref = await addDoc(col, {
-    startTime: options.startTime ? Timestamp.fromDate(options.startTime) : nowTs(),
-    status: "active",
-    type: "nursing",
-    cid: childUid,
-    ...(options.side !== undefined && { side: options.side }),
-    ...(options.notes !== undefined && { notes: options.notes }),
-  });
-  return ref.id;
-}
-
-/** Pauses an active nursing session. */
-export async function pauseNursing(
-  client: HuckleberryClient,
-  childUid: string,
-  intervalId: string,
-): Promise<void> {
-  await client.connect();
-  const db = client.getFirestore();
-  await updateDoc(doc(db, feedIntervalsPath(childUid), intervalId), {
-    status: "paused",
-    pauseTime: nowTs(),
-  });
-}
-
-/** Resumes a paused nursing session. */
-export async function resumeNursing(
-  client: HuckleberryClient,
-  childUid: string,
-  intervalId: string,
-): Promise<void> {
-  await client.connect();
-  const db = client.getFirestore();
-  await updateDoc(doc(db, feedIntervalsPath(childUid), intervalId), {
-    status: "active",
-    pauseTime: null,
-  });
-}
-
-/** Switches the active nursing side. */
-export async function switchNursingSide(
-  client: HuckleberryClient,
-  childUid: string,
-  intervalId: string,
-  newSide: NursingSide,
-): Promise<void> {
-  await client.connect();
-  const db = client.getFirestore();
-  await updateDoc(doc(db, feedIntervalsPath(childUid), intervalId), {
-    side: newSide,
-  });
-}
-
-export interface CompleteNursingOptions {
-  notes?: string;
-  endTime?: Date;
-}
-
-/** Completes a nursing session. */
-export async function completeNursing(
-  client: HuckleberryClient,
-  childUid: string,
-  intervalId: string,
-  options: CompleteNursingOptions = {},
-): Promise<void> {
-  await client.connect();
-  const db = client.getFirestore();
-  await updateDoc(doc(db, feedIntervalsPath(childUid), intervalId), {
-    status: "completed",
-    endTime: options.endTime ? Timestamp.fromDate(options.endTime) : nowTs(),
-    pauseTime: null,
-    ...(options.notes !== undefined && { notes: options.notes }),
-  });
-}
-
-export interface LogNursingOptions {
-  side?: NursingSide;
-  notes?: string;
-}
-
-/** Logs a completed nursing session with explicit times. Returns the new ID. */
-export async function logNursing(
-  client: HuckleberryClient,
-  childUid: string,
-  startTime: Date,
-  endTime: Date,
-  options: LogNursingOptions = {},
-): Promise<string> {
-  await client.connect();
-  const db = client.getFirestore();
-  const col = collection(db, feedIntervalsPath(childUid));
-  const ref = await addDoc(col, {
-    startTime: Timestamp.fromDate(startTime),
-    endTime: Timestamp.fromDate(endTime),
-    status: "completed",
-    type: "nursing",
-    cid: childUid,
-    ...(options.side !== undefined && { side: options.side }),
-    ...(options.notes !== undefined && { notes: options.notes }),
-  });
-  return ref.id;
-}
-
-// ── Bottle ─────────────────────────────────────────────────────────────────
-
-export interface LogBottleOptions {
-  notes?: string;
-  amountUnit?: "ml" | "oz";
-}
-
-/** Logs a bottle feeding. Returns the new interval ID. */
-export async function logBottle(
-  client: HuckleberryClient,
-  childUid: string,
-  startTime: Date,
-  endTime: Date,
-  amount: number,
-  options: LogBottleOptions = {},
-): Promise<string> {
-  await client.connect();
-  const db = client.getFirestore();
-  const col = collection(db, feedIntervalsPath(childUid));
-  const ref = await addDoc(col, {
-    startTime: Timestamp.fromDate(startTime),
-    endTime: Timestamp.fromDate(endTime),
-    status: "completed",
-    type: "bottle",
-    amount,
-    amountUnit: options.amountUnit ?? "ml",
-    cid: childUid,
-    ...(options.notes !== undefined && { notes: options.notes }),
-  });
-  return ref.id;
 }
 
 // ── Pump ───────────────────────────────────────────────────────────────────
 
 export interface LogPumpOptions {
-  notes?: string;
-  amountUnit?: "ml" | "oz";
+  start: number;
+  leftAmount: number;
+  rightAmount: number;
+  units: "ml" | "oz";
+  duration?: number;
+  totalAmount?: number;
+  time?: Date;
 }
 
 /** Logs a pumping session. Returns the new interval ID. */
 export async function logPump(
   client: HuckleberryClient,
   childUid: string,
-  startTime: Date,
-  endTime: Date,
-  amount?: number,
-  options: LogPumpOptions = {},
+  options: LogPumpOptions,
 ): Promise<string> {
-  await client.connect();
-  const db = client.getFirestore();
-  const col = collection(db, feedIntervalsPath(childUid));
-  const ref = await addDoc(col, {
-    startTime: Timestamp.fromDate(startTime),
-    endTime: Timestamp.fromDate(endTime),
-    status: "completed",
-    type: "pump",
-    cid: childUid,
-    ...(amount !== undefined && { amount, amountUnit: options.amountUnit ?? "ml" }),
-    ...(options.notes !== undefined && { notes: options.notes }),
+  const eventDate = options.time ?? new Date();
+  const offset = client.getOffsetMinutes(eventDate);
+  const lastUpdated = Date.now() / 1000;
+
+  let entryMode: "total" | "leftright";
+  let leftAmount: number;
+  let rightAmount: number;
+
+  if (options.totalAmount !== undefined) {
+    entryMode = "total";
+    leftAmount = options.totalAmount / 2;
+    rightAmount = options.totalAmount / 2;
+  } else {
+    entryMode = "leftright";
+    leftAmount = options.leftAmount;
+    rightAmount = options.rightAmount;
+  }
+
+  return writeIntervalWithPrefs(client, {
+    collectionName: "pump",
+    subcollection: "intervals",
+    childUid,
+    interval: {
+      entryMode,
+      start: options.start,
+      offset,
+      leftAmount,
+      rightAmount,
+      units: options.units,
+      ...(options.duration !== undefined && { duration: options.duration }),
+      lastUpdated,
+    },
+    prefs: {
+      lastPump: {
+        start: options.start,
+        offset,
+        leftAmount,
+        rightAmount,
+        units: options.units,
+        entryMode,
+        ...(options.duration !== undefined && { duration: options.duration }),
+      },
+    },
   });
-  return ref.id;
 }
 
 export interface PumpHistoryOptions {
   limit?: number;
 }
 
-/** Returns pump sessions for a child ordered by startTime descending. */
+/** Returns pump intervals for a child, ordered by start descending. */
 export async function listPumpIntervals(
   client: HuckleberryClient,
   childUid: string,
@@ -239,11 +231,8 @@ export async function listPumpIntervals(
 ): Promise<FeedingIntervalParsed[]> {
   await client.connect();
   const db = client.getFirestore();
-  const col = collection(db, feedIntervalsPath(childUid));
-  // Query all feed intervals and filter client-side (Firestore single-field inequality limit)
-  const q = query(col, orderBy("startTime", "desc"), limit(options.limit ?? 50));
+  const col = collection(db, "pump", childUid, "intervals");
+  const q = query(col, orderBy("start", "desc"), limit(options.limit ?? 50));
   const snap = await getDocs(q);
-  return snap.docs
-    .map((d) => FeedingInterval.parse(d.data()))
-    .filter((interval) => interval.type === "pump");
+  return snap.docs.map((d) => FeedingInterval.parse(d.data()));
 }

@@ -3,31 +3,30 @@ import { registerTool } from "../server/server.js";
 import { getClient } from "../server/auth.js";
 import { logDiaper, logPotty } from "../client/index.js";
 
-// T2.6: Health/Diaper Tools (2 tools)
+// T2.6: Diaper & Potty Tools (2 tools)
 
 // log_diaper — log a diaper change
 registerTool(
   "log_diaper",
-  "Log a diaper change for a child (pee, poo, both, or dry)",
+  "Log a diaper change for a child",
   z.object({
     child_uid: z.string().min(1, "child_uid is required"),
-    type: z.enum(["pee", "poo", "both", "dry"]),
-    color: z
-      .enum(["yellow", "brown", "green", "black", "red", "white", "orange", "other"])
-      .optional(),
-    consistency: z
-      .enum(["hard", "normal", "soft", "runny", "watery", "formed", "mucousy"])
-      .optional(),
-    note: z.string().optional(),
-    date: z.number().optional(), // Unix timestamp (defaults to now)
+    mode: z.enum(["pee", "poo", "both", "dry"]),
+    start: z.number().min(0, "start is required (epoch seconds)"),
+    color: z.string().optional(),
+    consistency: z.string().optional(),
+    pee_amount: z.enum(["little", "medium", "big"]).optional(),
+    poo_amount: z.enum(["little", "medium", "big"]).optional(),
   }),
   async (input) => {
     const client = await getClient();
-    const id = await logDiaper(client, input.child_uid, input.type, {
+    const id = await logDiaper(client, input.child_uid, {
+      mode: input.mode,
+      start: input.start,
       color: input.color,
       consistency: input.consistency,
-      note: input.note,
-      time: input.date ? new Date(input.date) : undefined,
+      peeAmount: input.pee_amount,
+      pooAmount: input.poo_amount,
     });
     return {
       content: [
@@ -46,15 +45,14 @@ registerTool(
   "Log potty training activity for a child",
   z.object({
     child_uid: z.string().min(1, "child_uid is required"),
-    type: z.enum(["pee", "poo"]),
-    note: z.string().optional(),
-    date: z.number().optional(), // Unix timestamp (defaults to now)
+    mode: z.enum(["pee", "poo"]),
+    start: z.number().min(0, "start is required (epoch seconds)"),
   }),
   async (input) => {
     const client = await getClient();
-    const id = await logPotty(client, input.child_uid, input.type, {
-      note: input.note,
-      time: input.date ? new Date(input.date) : undefined,
+    const id = await logPotty(client, input.child_uid, {
+      mode: input.mode,
+      start: input.start,
     });
     return {
       content: [

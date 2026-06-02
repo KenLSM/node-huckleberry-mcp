@@ -1,8 +1,5 @@
 // Data models for Huckleberry Firestore documents
-// Zod-based validation schemas matching firebase_types.py from py-huckleberry-api
-
-export { TimestampSchema } from "./timestamp.js";
-export type { HbTimestamp } from "./timestamp.js";
+// Zod-based validation schemas per docs/schema-port-spec.md
 
 export { FirebaseUserDocument, ChildListEntry } from "./user.js";
 export type { FirebaseUserDocumentParsed, ChildListEntryParsed } from "./user.js";
@@ -10,17 +7,25 @@ export type { FirebaseUserDocumentParsed, ChildListEntryParsed } from "./user.js
 export { ChildDocument } from "./child.js";
 export type { ChildDocumentParsed } from "./child.js";
 
-export { SleepInterval, SleepTypeSchema } from "./sleep.js";
-export type { SleepIntervalParsed, SleepType } from "./sleep.js";
+export { SleepInterval } from "./sleep.js";
+export type { SleepIntervalParsed } from "./sleep.js";
 
-export { FeedingInterval } from "./feed.js";
-export type { FeedingIntervalParsed } from "./feed.js";
+export { NursingInterval, BottleInterval, SolidsInterval, FeedingInterval } from "./feed.js";
+export type {
+  NursingIntervalParsed,
+  BottleIntervalParsed,
+  SolidsIntervalParsed,
+  FeedingIntervalParsed,
+} from "./feed.js";
+
+export { PumpInterval } from "./pump.js";
+export type { PumpIntervalParsed } from "./pump.js";
+
+export { DiaperInterval } from "./diaper.js";
+export type { DiaperIntervalParsed } from "./diaper.js";
 
 export { GrowthRecord } from "./growth.js";
 export type { GrowthRecordParsed } from "./growth.js";
-
-export { DiaperLog } from "./diaper.js";
-export type { DiaperLogParsed } from "./diaper.js";
 
 export { CustomFood } from "./food.js";
 export type { CustomFoodParsed } from "./food.js";

@@ -1,4 +1,4 @@
-import { collection, addDoc, getDocs, Timestamp } from "firebase/firestore";
+import { collection, addDoc, getDocs } from "firebase/firestore";
 import type { HuckleberryClient } from "./HuckleberryClient.js";
 import { CustomFood, type CustomFoodParsed } from "../models/index.js";
 
@@ -14,13 +14,6 @@ export interface CuratedFood {
   name: string;
   category?: string;
   allergen?: boolean;
-}
-
-export interface LogSolidsOptions {
-  amount?: number;
-  notes?: string;
-  /** Override time (defaults to now). */
-  time?: Date;
 }
 
 export interface CreateCustomFoodOptions {
@@ -92,25 +85,4 @@ export async function createCustomFood(
 }
 
 // ── Log solids ─────────────────────────────────────────────────────────────
-
-/** Logs a solids feeding. `foodIds` are IDs from curated or custom foods. Returns the new ID. */
-export async function logSolids(
-  client: HuckleberryClient,
-  childUid: string,
-  foodIds: string[],
-  options: LogSolidsOptions = {},
-): Promise<string> {
-  await client.connect();
-  const db = client.getFirestore();
-  const col = collection(db, `feed/${childUid}/intervals`);
-  const ref = await addDoc(col, {
-    startTime: options.time ? Timestamp.fromDate(options.time) : Timestamp.now(),
-    status: "completed",
-    type: "solids",
-    foods: foodIds,
-    cid: childUid,
-    ...(options.amount !== undefined && { amount: options.amount }),
-    ...(options.notes !== undefined && { notes: options.notes }),
-  });
-  return ref.id;
-}
+// Note: food refs are out of scope for v1; use logSolids from feedOps.ts

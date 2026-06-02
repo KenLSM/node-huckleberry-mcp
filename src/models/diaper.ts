@@ -1,19 +1,14 @@
 import { z } from "zod";
-import { TimestampSchema } from "./timestamp.js";
 
-export const DiaperLog = z.object({
-  id: z.string().optional(),
-  childUid: z.string().optional(),
-  cid: z.string().optional(),
-  date: TimestampSchema,
-  type: z.enum(["pee", "poo", "both", "dry"]).default("both"),
+export const DiaperInterval = z.object({
+  mode: z.enum(["pee", "poo", "both", "dry"]),
+  start: z.number(),
+  offset: z.number(),
+  quantity: z.number().optional(),
   color: z.string().optional(),
-  consistency: z
-    .enum(["hard", "normal", "soft", "runny", "watery", "formed", "mucousy"])
-    .optional(),
-  note: z.string().optional(),
-  createdAt: TimestampSchema.optional(),
-  updatedAt: TimestampSchema.optional(),
+  consistency: z.string().optional(),
+  isPotty: z.boolean().optional(),
+  lastUpdated: z.number().optional(),
 });
 
-export type DiaperLogParsed = z.infer<typeof DiaperLog>;
+export type DiaperIntervalParsed = z.infer<typeof DiaperInterval>;
