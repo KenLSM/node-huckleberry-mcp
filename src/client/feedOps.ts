@@ -1,6 +1,11 @@
 import { collection, getDocs, query, orderBy, limit } from "firebase/firestore";
 import type { HuckleberryClient } from "./HuckleberryClient.js";
-import { FeedingInterval, type FeedingIntervalParsed } from "../models/index.js";
+import {
+  FeedingInterval,
+  type FeedingIntervalParsed,
+  PumpInterval,
+  type PumpIntervalParsed,
+} from "../models/index.js";
 import { writeIntervalWithPrefs } from "./prefs.js";
 
 // ── Nursing ────────────────────────────────────────────────────────────────
@@ -41,7 +46,7 @@ export async function logNursing(
         mode: "breast",
         start: options.start,
         offset,
-        duration: ((options.leftDuration ?? 0) + (options.rightDuration ?? 0)) / 1000,
+        duration: (options.leftDuration ?? 0) + (options.rightDuration ?? 0),
       },
       ...(options.lastSide !== undefined && {
         lastSide: { lastSide: options.lastSide, start: options.start },
@@ -228,11 +233,11 @@ export async function listPumpIntervals(
   client: HuckleberryClient,
   childUid: string,
   options: PumpHistoryOptions = {},
-): Promise<FeedingIntervalParsed[]> {
+): Promise<PumpIntervalParsed[]> {
   await client.connect();
   const db = client.getFirestore();
   const col = collection(db, "pump", childUid, "intervals");
   const q = query(col, orderBy("start", "desc"), limit(options.limit ?? 50));
   const snap = await getDocs(q);
-  return snap.docs.map((d) => FeedingInterval.parse(d.data()));
+  return snap.docs.map((d) => PumpInterval.parse(d.data()));
 }

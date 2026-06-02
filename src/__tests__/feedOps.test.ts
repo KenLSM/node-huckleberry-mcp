@@ -1,47 +1,139 @@
-import { describe, it, expect } from "vitest";
-import {
-  logNursing,
-  logBottle,
-  logSolids,
-  logPump,
-  getFeedHistory,
-  listPumpIntervals,
-} from "../client/feedOps.js";
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import type { HuckleberryClient } from "../client/HuckleberryClient.js";
 
-describe("feedOps", () => {
-  describe("logNursing()", () => {
-    it("is a function", () => {
-      expect(typeof logNursing).toBe("function");
+// Mock firebase/firestore so we can assert the exact document bodies written.
+// collection()/doc() return the path so we can verify the right collection.
+const { mockAddDoc, mockSetDoc, mockGetDocs, mockCollection, mockDoc } = vi.hoisted(() => ({
+  mockAddDoc: vi.fn(async () => ({ id: "new-id" })),
+  mockSetDoc: vi.fn(async () => undefined),
+  mockGetDocs: vi.fn(),
+  mockCollection: vi.fn((_db: unknown, ...seg: string[]) => ({ path: seg.join("/") })),
+  mockDoc: vi.fn((_db: unknown, ...seg: string[]) => ({ path: seg.join("/") })),
+}));
+
+vi.mock("firebase/firestore", () => ({
+  collection: mockCollection,
+  doc: mockDoc,
+  addDoc: mockAddDoc,
+  setDoc: mockSetDoc,
+  getDocs: mockGetDocs,
+  query: (col: unknown) => col,
+  orderBy: () => ({}),
+  limit: () => ({}),
+}));
+
+import { logNursing, logBottle, logSolids, logPump, listPumpIntervals } from "../client/feedOps.js";
+
+const OFFSET = -480;
+const client = {
+  connect: vi.fn(async () => ({})),
+  getFirestore: () => ({}),
+  getOffsetMinutes: () => OFFSET,
+} as unknown as HuckleberryClient;
+
+function lastInterval() {
+  return mockAddDoc.mock.calls[0][1] as Record<string, unknown>;
+}
+function lastIntervalPath() {
+  return (mockAddDoc.mock.calls[0][0] as { path: string }).path;
+}
+function lastPrefs() {
+  return (mockSetDoc.mock.calls[0][1] as { prefs: Record<string, unknown> }).prefs;
+}
+
+beforeEach(() => vi.clearAllMocks());
+
+describe("feedOps writes", () => {
+  it("logNursing writes to feed/intervals with seconds-duration prefs (no /1000)", async () => {
+    await logNursing(client, "cid", {
+      start: 1000,
+      leftDuration: 600,
+      rightDuration: 600,
+      lastSide: "left",
+    });
+    expect(lastIntervalPath()).toBe("feed/cid/intervals");
+    expect(lastInterval()).toMatchObject({
+      mode: "breast",
+      start: 1000,
+      offset: OFFSET,
+      leftDuration: 600,
+      rightDuration: 600,
+      lastSide: "left",
+    });
+    const prefs = lastPrefs() as { lastFeed: { duration: number }; lastSide: unknown };
+    // Regression: durations are seconds already → 600+600 = 1200, not 1.2.
+    expect(prefs.lastFeed.duration).toBe(1200);
+    expect(prefs.lastSide).toEqual({ lastSide: "left", start: 1000 });
+  });
+
+  it("logBottle writes feed/intervals + bottle prefs", async () => {
+    await logBottle(client, "cid", {
+      start: 5,
+      amount: 177,
+      bottleType: "Breast Milk",
+      units: "ml",
+    });
+    expect(lastIntervalPath()).toBe("feed/cid/intervals");
+    expect(lastInterval()).toMatchObject({
+      mode: "bottle",
+      amount: 177,
+      bottleType: "Breast Milk",
+      units: "ml",
+    });
+    expect(lastPrefs()).toMatchObject({
+      bottleAmount: 177,
+      bottleUnits: "ml",
+      bottleType: "Breast Milk",
     });
   });
 
-  describe("logBottle()", () => {
-    it("is a function", () => {
-      expect(typeof logBottle).toBe("function");
-    });
+  it("logSolids writes feed/intervals with mode solids", async () => {
+    await logSolids(client, "cid", { start: 9 });
+    expect(lastIntervalPath()).toBe("feed/cid/intervals");
+    expect(lastInterval()).toMatchObject({ mode: "solids", start: 9, offset: OFFSET });
   });
 
-  describe("logSolids()", () => {
-    it("is a function", () => {
-      expect(typeof logSolids).toBe("function");
+  it("logPump writes to the pump collection and splits totalAmount", async () => {
+    await logPump(client, "cid", {
+      start: 1,
+      leftAmount: 0,
+      rightAmount: 0,
+      units: "oz",
+      totalAmount: 12,
+      duration: 480,
+    });
+    expect(lastIntervalPath()).toBe("pump/cid/intervals");
+    expect(lastInterval()).toMatchObject({
+      entryMode: "total",
+      leftAmount: 6,
+      rightAmount: 6,
+      units: "oz",
+      duration: 480,
     });
   });
+});
 
-  describe("logPump()", () => {
-    it("is a function", () => {
-      expect(typeof logPump).toBe("function");
+describe("feedOps reads", () => {
+  it("listPumpIntervals parses pump-shaped docs (no `mode` field)", async () => {
+    mockGetDocs.mockResolvedValue({
+      docs: [
+        {
+          data: () => ({
+            entryMode: "total",
+            start: 1,
+            offset: OFFSET,
+            leftAmount: 6,
+            rightAmount: 6,
+            units: "oz",
+            duration: 480,
+            lastUpdated: 2,
+          }),
+        },
+      ],
     });
-  });
-
-  describe("getFeedHistory()", () => {
-    it("is a function", () => {
-      expect(typeof getFeedHistory).toBe("function");
-    });
-  });
-
-  describe("listPumpIntervals()", () => {
-    it("is a function", () => {
-      expect(typeof listPumpIntervals).toBe("function");
-    });
+    // Regression: parsing pump docs with the FeedingInterval union threw (no `mode`).
+    const res = await listPumpIntervals(client, "cid");
+    expect(res).toHaveLength(1);
+    expect(res[0]).toMatchObject({ entryMode: "total", leftAmount: 6, units: "oz" });
   });
 });
