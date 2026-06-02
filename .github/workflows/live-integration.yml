@@ -1,0 +1,36 @@
+# Manually-triggered live integration suite (T3.2).
+#
+# Runs the credential-gated read-back tests against the REAL account using the
+# repo secrets, so the schema port can be validated end-to-end against live data.
+# Read-only (no writes to the account).
+#
+# Required repository secrets: HUCKLEBERRY_EMAIL, HUCKLEBERRY_PASSWORD
+# Optional: HUCKLEBERRY_TIMEZONE (defaults to UTC).
+#
+# Trigger from the Actions tab → "Live Integration" → Run workflow. The "Run
+# workflow" button only appears once this file is on the default branch.
+name: Live Integration
+
+on:
+  workflow_dispatch:
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run live integration tests
+        env:
+          HUCKLEBERRY_EMAIL: ${{ secrets.HUCKLEBERRY_EMAIL }}
+          HUCKLEBERRY_PASSWORD: ${{ secrets.HUCKLEBERRY_PASSWORD }}
+          HUCKLEBERRY_TIMEZONE: ${{ secrets.HUCKLEBERRY_TIMEZONE }}
+        run: npm run test:integration
