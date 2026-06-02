@@ -122,13 +122,13 @@ Each tracker is `{collection}/{childUid}` (parent doc) with entries in a
 subcollection, plus a `prefs` summary on the parent. Doc IDs are Firestore
 auto-IDs (`addDoc`).
 
-| Tracker                      | Entry path               | Parent summary                                                          |
-| ---------------------------- | ------------------------ | ----------------------------------------------------------------------- |
-| Sleep                        | `sleep/{cid}/intervals`  | `prefs.lastSleep`                                                       |
-| Feed (nursing/bottle/solids) | `feed/{cid}/intervals`   | `prefs.lastFeed`, `prefs.lastSide`, `prefs.bottle*`                     |
-| Diaper + potty               | `diaper/{cid}/intervals` | `prefs.lastDiaper` / `prefs.lastPotty`                                  |
-| Pump                         | `pump/{cid}/intervals`   | `prefs.lastPump`                                                        |
-| Growth                       | `health/{cid}/data`      | `prefs.lastGrowthEntry` (⚠️ **not yet live-confirmed — T1.8 deferred**) |
+| Tracker                      | Entry path               | Parent summary                                                    |
+| ---------------------------- | ------------------------ | ----------------------------------------------------------------- |
+| Sleep                        | `sleep/{cid}/intervals`  | `prefs.lastSleep`                                                 |
+| Feed (nursing/bottle/solids) | `feed/{cid}/intervals`   | `prefs.lastFeed`, `prefs.lastSide`, `prefs.bottle*`               |
+| Diaper + potty               | `diaper/{cid}/intervals` | `prefs.lastDiaper` / `prefs.lastPotty`                            |
+| Pump                         | `pump/{cid}/intervals`   | `prefs.lastPump`                                                  |
+| Growth                       | `health/{cid}/data`      | **none** — growth does NOT update parent `prefs` (live-confirmed) |
 
 Confirmed entry shapes (live):
 
@@ -138,6 +138,7 @@ Confirmed entry shapes (live):
 - **Feed / solids:** `{ mode:"solids", start, offset, lastUpdated }` (+ food refs when present).
 - **Diaper:** `{ mode:"poo", color:"yellow", quantity:50, start, offset, lastUpdated }` — `quantity` is a **scalar** (0/50/100 = little/medium/big), _not_ the `{pee,poo}` map the Python source uses. **Live wins.**
 - **Pump:** `{ entryMode:"total", leftAmount, rightAmount, duration, units:"oz", start, offset, lastUpdated }`.
+- **Growth (`health/{cid}/data`, live-confirmed):** `{ mode:"growth", start, offset, lastUpdated, weight?, weightUnits:"kg", height?, heightUnits:"cm", head?, headUnits:"hcm" }` (metric; imperial units `lbs.oz`/`ft.in`/`hin`). Growth does **not** write a `prefs` summary.
 
 Every parent `prefs` also carries `timestamp:{ seconds:<float> }` and
 `local_timestamp:<float>` set to "now" on each write.

@@ -211,12 +211,53 @@ universal read pattern and parse with the matching model.
 - `types/{childUid}/custom` paths are already correct — keep them. Only the
   `log_solids` write (which lands in `feed`) needs §3.2 treatment.
 
-### 3.6 Growth (T1.8) — **DO NOT IMPLEMENT**
+### 3.6 Growth (T1.8) — **NOW SPEC'D (live-confirmed 2026-06)**
 
-Deferred. No live sample. Leave `growthOps.ts` out of the build/exports or behind
-a clearly-marked stub that throws "growth not yet implemented". Remove its MCP
-tools (`log_growth`, `get_latest_growth`, `get_growth_history`) from registration
-until a live sample is captured and this spec is extended.
+Collection is **`health`**, subcollection **`data`** (NOT `intervals`). Doc auto-id.
+
+**Important — growth is the one tracker that does NOT update parent `prefs`.**
+Live data confirmed the `health` parent `prefs` is left untouched on a growth log
+(its timestamp stayed stale while the entry was written). So do **not** use
+`writeIntervalWithPrefs` here — just `addDoc` the entry to `health/{cid}/data`.
+(The Python source's `prefs.lastGrowthEntry` update is wrong for the live app —
+ignore it.)
+
+Entry shape (only include the measurements provided):
+
+```ts
+// GrowthEntry — health/{cid}/data
+{
+  mode: "growth",
+  start: number,        // epoch seconds
+  offset: number,       // client.getOffsetMinutes(eventDate)
+  lastUpdated: number,  // Date.now() / 1000
+  weight?: number,  weightUnits?: "kg" | "lbs.oz",
+  height?: number,  heightUnits?: "cm" | "ft.in",
+  head?: number,    headUnits?: "hcm" | "hin",
+}
+```
+
+Units: **metric** → `kg` / `cm` / `hcm` (live-confirmed); **imperial** →
+`lbs.oz` / `ft.in` / `hin` (from Python, not live-confirmed). There is **no**
+`type`, `id`, `isNight`, or `multientry_key` field — live entries are lean.
+
+Model (`src/models/growth.ts`): `z.object` with `mode: z.literal("growth")`,
+numeric `start`/`offset`/`lastUpdated`, and optional numeric measurements + unit
+enums above. Export `GrowthEntry`/`GrowthEntryParsed` from `models/index.ts`.
+
+Ops (`src/client/growthOps.ts`):
+
+- `logGrowth(client, childUid, { weight?, height?, head?, units?: "metric"|"imperial", time? })`
+  — require at least one measurement; set the matching `*Units`; `addDoc` to
+  `health/{cid}/data`. Returns the new id.
+- `getLatestGrowth(client, childUid)` — read `health/{cid}/data`,
+  `orderBy("start","desc")`, `limit(1)`, parse with `GrowthEntry`, return it or null.
+- `getGrowthHistory(client, childUid, { limit })` — same, no limit-1.
+
+Tools (`src/tools/growth.ts`): register `log_growth`, `get_latest_growth`,
+`get_growth_history` and import the module in `src/index.ts` +
+`src/__tests__/integration.test.ts` (replace the stub). Unit tests: assert the
+exact entry body + that **no** prefs write happens (e.g. `setDoc` not called).
 
 ---
 
