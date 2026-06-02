@@ -72,7 +72,7 @@ Rules of thumb:
 > is unambiguous, so the rework is **Haiku-tier** implementation; the verified
 > schema + `src/util/timezone.ts` foundation are already in place. Do NOT invent
 > fields — if the spec is unclear, stop and ask rather than guess. Growth (T1.8)
-> stays deferred until a live sample exists.
+> is now live-confirmed and ready — see spec §3.6.
 
 | ID          | Task                                                                                                                             | Acceptance criterion                                                                                                                                                                                                      | Model      |
 | ----------- | -------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
