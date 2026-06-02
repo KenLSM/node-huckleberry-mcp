@@ -66,6 +66,10 @@ if (!cid) {
   process.exit(1);
 }
 
+// The child profile doc — captures the real shape of childs/{cid} (gender, etc.).
+const childSnap = await getDoc(doc(db, "childs", cid));
+dump(`childs/${cid} (child profile)`, childSnap.data() ?? null);
+
 // parent doc → show prefs/summary shape; subcollection → show a few raw entries.
 const trackers = [
   { name: "sleep", sub: "intervals" },
