@@ -1,20 +1,28 @@
 import { z } from "zod";
 
-// Child profile (childs/{cid}). This is read-only info we never write, and the
-// real document shape isn't fully captured yet, so the schema is intentionally
-// permissive: no invented enums (the app stores gender as "M"/"F", not
-// "male"/"female"), and unknown fields pass through rather than failing parse.
+// Child profile (childs/{cid}), typed from a live document. Read-only info we
+// never write. `.passthrough()` keeps any fields not modelled here rather than
+// failing the parse. Note the real field names: `childsName` (not `name`),
+// `birthdate` as a "YYYY-MM-DD" string (not a Timestamp), gender as a free-form
+// string ("M"/"F"). Display nickname/picture/color live on the user's
+// childList entry, not here.
 export const ChildDocument = z
   .object({
-    uid: z.string().optional(),
-    name: z.string().optional(),
-    nickname: z.string().optional(),
-    picture: z.string().optional(),
-    color: z.string().optional(),
+    childsName: z.string().optional(),
     gender: z.string().optional(),
-    birthDate: z.unknown().optional(),
-    weightUnit: z.string().optional(),
-    heightUnit: z.string().optional(),
+    birthdate: z.string().optional(),
+    naps: z.string().optional(),
+    nightStart: z.number().optional(),
+    morningCutoff: z.number().optional(),
+    pre: z.number().optional(),
+    createdAt: z.number().optional(),
+    sweetspot: z
+      .object({
+        daysUsed: z.number().optional(),
+        lastUseDay: z.number().optional(),
+      })
+      .passthrough()
+      .optional(),
   })
   .passthrough();
 

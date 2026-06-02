@@ -62,6 +62,14 @@ Verified live top-level user keys: `childList, hbChilds, lastChild, email,
 firstname, lastname, latestTimezone, subscription, installedApps, …`.
 (The Python `FirebaseUserDocument` model in `firebase_types.py` matches this.)
 
+The **child profile** at `childs/{cid}` (live-confirmed) uses these field names:
+`childsName` (display name — _not_ `name`), `gender` (free-form string, e.g.
+`"M"`/`"F"` — _not_ an enum), `birthdate` (`"YYYY-MM-DD"` string — _not_ a
+Timestamp), `naps` (string, e.g. `"2"`), plus `nightStart`/`morningCutoff`/`pre`/
+`createdAt` (numbers) and a `sweetspot` object. Display `nickname`/`picture`/
+`color` live on the user's `childList` entry, not here. `ChildDocument` models
+these and uses `.passthrough()` for resilience.
+
 ## What the spike verified (no credentials needed)
 
 Run via `curl` and `spike/spike.mjs`:

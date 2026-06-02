@@ -28,16 +28,19 @@ describe("Data Models", () => {
   });
 
   describe("ChildDocument", () => {
-    it("parses a valid child document", () => {
+    it("parses a real child profile (childsName/birthdate/gender + passthrough)", () => {
       const data = {
-        uid: "child1",
-        name: "Baby John",
-        birthDate: 1609459200,
-        gender: "male",
+        childsName: "Asd",
+        gender: "M",
+        birthdate: "2025-06-01",
+        naps: "2",
+        nightStart: 6,
+        sweetspot: { daysUsed: 1, lastUseDay: 1780272000 },
       };
       const result = ChildDocument.parse(data);
-      expect(result.uid).toBe("child1");
-      expect(result.name).toBe("Baby John");
+      expect(result.childsName).toBe("Asd");
+      expect(result.gender).toBe("M");
+      expect(result.birthdate).toBe("2025-06-01");
     });
   });
 
