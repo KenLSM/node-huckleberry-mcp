@@ -51,6 +51,8 @@ credentials it reports the tests as skipped (so `npm test` and CI stay green).
 npm run test:integration
 ```
 
-Currently read-only (auth + user/child reads). As each tracker's ops are ported
-to the verified schema, a write→read-back round-trip is added here so the real
-document shape is asserted end-to-end.
+Covers: auth + user/child reads, plus **schema read-back** — it reads the latest
+entries for each tracker (sleep, feed, diaper, pump) and parses them with the
+ported Zod models. A parse failure means the model is wrong for real data. These
+need at least one entry per tracker logged in the app (empty trackers pass
+trivially). Read-only — no test data is written to the account.

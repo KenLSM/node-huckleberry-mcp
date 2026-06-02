@@ -1,6 +1,14 @@
 import { describe, it, expect } from "vitest";
 import { HuckleberryClient } from "../client/HuckleberryClient.js";
-import { getUser, getChildren } from "../client/childOps.js";
+import {
+  getUser,
+  getChildren,
+  getDefaultChildUid,
+  getSleepHistory,
+  getFeedHistory,
+  listPumpIntervals,
+  getDiaperHistory,
+} from "../client/index.js";
 
 /**
  * T3.2 — Live integration suite. Runs against a REAL Huckleberry account and is
@@ -9,8 +17,10 @@ import { getUser, getChildren } from "../client/childOps.js";
  *
  *   HUCKLEBERRY_EMAIL=… HUCKLEBERRY_PASSWORD=… npm run test:integration
  *
- * These are read-only. Write-path round-trips will be added per tracker as the
- * client ops are ported to the real schema (see docs/integration-testing.md).
+ * Read-only. The tracker read-back tests below pull real entries and parse them
+ * with the ported Zod models — a parse failure means the model/schema is wrong.
+ * They require that the account has at least one entry per tracker (log them in
+ * the app first; see docs/integration-testing.md).
  */
 const email = process.env.HUCKLEBERRY_EMAIL;
 const password = process.env.HUCKLEBERRY_PASSWORD;
@@ -41,6 +51,76 @@ describe.skipIf(!hasCreds)("live integration (real account)", () => {
     try {
       const children = await getChildren(client);
       expect(Array.isArray(children)).toBe(true);
+    } finally {
+      await client.signOut();
+    }
+  });
+});
+
+// Reads each tracker and parses it with the ported models. If a real document
+// doesn't match the model, the read function's Zod .parse() throws and the test
+// fails — validating the schema port against real data with zero writes.
+describe.skipIf(!hasCreds)("live schema read-back", () => {
+  it(
+    "sleep intervals parse and carry numeric start/duration/offset",
+    { timeout: 20000 },
+    async () => {
+      const client = new HuckleberryClient({ credentials: { email: email!, password: password! } });
+      try {
+        const cid = await getDefaultChildUid(client);
+        const items = await getSleepHistory(client, cid, { limit: 5 });
+        expect(Array.isArray(items)).toBe(true);
+        if (items.length > 0) {
+          expect(typeof items[0].start).toBe("number");
+          expect(typeof items[0].duration).toBe("number");
+          expect(typeof items[0].offset).toBe("number");
+        }
+      } finally {
+        await client.signOut();
+      }
+    },
+  );
+
+  it("feed intervals parse with a mode discriminator", { timeout: 20000 }, async () => {
+    const client = new HuckleberryClient({ credentials: { email: email!, password: password! } });
+    try {
+      const cid = await getDefaultChildUid(client);
+      const items = await getFeedHistory(client, cid, { limit: 10 });
+      expect(Array.isArray(items)).toBe(true);
+      if (items.length > 0) {
+        expect(["breast", "bottle", "solids"]).toContain(items[0].mode);
+        expect(typeof items[0].start).toBe("number");
+      }
+    } finally {
+      await client.signOut();
+    }
+  });
+
+  it("pump intervals parse with entryMode + amounts", { timeout: 20000 }, async () => {
+    const client = new HuckleberryClient({ credentials: { email: email!, password: password! } });
+    try {
+      const cid = await getDefaultChildUid(client);
+      const items = await listPumpIntervals(client, cid, { limit: 5 });
+      expect(Array.isArray(items)).toBe(true);
+      if (items.length > 0) {
+        expect(["total", "leftright"]).toContain(items[0].entryMode);
+        expect(typeof items[0].leftAmount).toBe("number");
+      }
+    } finally {
+      await client.signOut();
+    }
+  });
+
+  it("diaper intervals parse with mode + numeric start", { timeout: 20000 }, async () => {
+    const client = new HuckleberryClient({ credentials: { email: email!, password: password! } });
+    try {
+      const cid = await getDefaultChildUid(client);
+      const items = await getDiaperHistory(client, cid, { limit: 5 });
+      expect(Array.isArray(items)).toBe(true);
+      if (items.length > 0) {
+        expect(["pee", "poo", "both", "dry"]).toContain(items[0].mode);
+        expect(typeof items[0].start).toBe("number");
+      }
     } finally {
       await client.signOut();
     }
