@@ -8,6 +8,7 @@ import {
   getFeedHistory,
   listPumpIntervals,
   getDiaperHistory,
+  getGrowthHistory,
 } from "../client/index.js";
 
 /**
@@ -119,6 +120,21 @@ describe.skipIf(!hasCreds)("live schema read-back", () => {
       expect(Array.isArray(items)).toBe(true);
       if (items.length > 0) {
         expect(["pee", "poo", "both", "dry"]).toContain(items[0].mode);
+        expect(typeof items[0].start).toBe("number");
+      }
+    } finally {
+      await client.signOut();
+    }
+  });
+
+  it("growth entries parse with mode growth + numeric start", { timeout: 20000 }, async () => {
+    const client = new HuckleberryClient({ credentials: { email: email!, password: password! } });
+    try {
+      const cid = await getDefaultChildUid(client);
+      const items = await getGrowthHistory(client, cid, { limit: 5 });
+      expect(Array.isArray(items)).toBe(true);
+      if (items.length > 0) {
+        expect(items[0].mode).toBe("growth");
         expect(typeof items[0].start).toBe("number");
       }
     } finally {

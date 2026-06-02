@@ -24,8 +24,8 @@ export type { PumpIntervalParsed } from "./pump.js";
 export { DiaperInterval } from "./diaper.js";
 export type { DiaperIntervalParsed } from "./diaper.js";
 
-export { GrowthRecord } from "./growth.js";
-export type { GrowthRecordParsed } from "./growth.js";
+export { GrowthEntry } from "./growth.js";
+export type { GrowthEntryParsed } from "./growth.js";
 
 export { CustomFood } from "./food.js";
 export type { CustomFoodParsed } from "./food.js";

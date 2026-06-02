@@ -49,6 +49,8 @@ describe("MCP server integration", () => {
       "log_solids",
       "log_diaper",
       "log_potty",
+      "log_growth",
+      "get_latest_growth",
       "list_curated_foods",
     ]) {
       expect(names).toContain(expected);

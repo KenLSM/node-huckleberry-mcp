@@ -9,7 +9,7 @@ import {
   FeedingInterval,
   DiaperInterval,
   PumpInterval,
-  GrowthRecord,
+  GrowthEntry,
   CustomFood,
 } from "../models/index.js";
 
@@ -175,11 +175,26 @@ describe("Data Models", () => {
     });
   });
 
-  describe("GrowthRecord (stubbed)", () => {
-    it("is a stub schema", () => {
-      const data = { _stub: true };
-      const result = GrowthRecord.parse(data);
-      expect(result._stub).toBe(true);
+  describe("GrowthEntry", () => {
+    it("parses a metric growth entry", () => {
+      const result = GrowthEntry.parse({
+        mode: "growth",
+        start: 1,
+        offset: -480,
+        lastUpdated: 2,
+        weight: 3.1,
+        weightUnits: "kg",
+        height: 21.6,
+        heightUnits: "cm",
+        head: 38,
+        headUnits: "hcm",
+      });
+      expect(result.mode).toBe("growth");
+      expect(result.weight).toBe(3.1);
+    });
+
+    it("rejects a non-growth mode", () => {
+      expect(() => GrowthEntry.parse({ mode: "sleep", start: 1, offset: 0 })).toThrow();
     });
   });
 
