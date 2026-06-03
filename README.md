@@ -11,7 +11,7 @@ Expose Huckleberry's data (sleep, feeding, growth, diapers, solids) directly in 
 
 ### Requirements
 
-- **Node.js** 18+ (tested on 18.x, 20.x)
+- **Node.js** 18+ (CI runs on Node 24)
 - **npm** 9+
 
 ### Quick Start
@@ -84,77 +84,78 @@ After updating the config, restart Claude Desktop. The Huckleberry tools will ap
 
 ## Tools
 
-The server exposes **29 tools** across 6 categories:
+The server exposes **19 tools** across 6 categories. (Active-session sleep/feed
+timers — `start_sleep`, `pause_feeding`, etc. — are not implemented; use the
+explicit `log_*` tools to record completed events.)
 
-### Child Management (2 tools)
+### Child Management (2)
 
-| Tool        | Input       | Output                                |
-| ----------- | ----------- | ------------------------------------- |
-| `get_user`  | —           | User profile + child list             |
-| `get_child` | `child_uid` | Child profile (name, birthDate, etc.) |
+| Tool        | Input       | Output                                              |
+| ----------- | ----------- | --------------------------------------------------- |
+| `get_user`  | —           | User profile + child UID list                       |
+| `get_child` | `child_uid` | Child profile (`childsName`, `gender`, `birthdate`) |
 
-### Sleep (7 tools)
+### Sleep (2)
 
-| Tool                | Purpose                                  |
-| ------------------- | ---------------------------------------- |
-| `start_sleep`       | Begin active sleep session               |
-| `pause_sleep`       | Pause active sleep                       |
-| `resume_sleep`      | Resume paused sleep                      |
-| `cancel_sleep`      | Cancel sleep session                     |
-| `complete_sleep`    | Mark sleep as completed                  |
-| `log_sleep`         | Log completed sleep with start/end times |
-| `get_sleep_history` | Retrieve recent sleep sessions           |
+| Tool                | Input                                 | Purpose                             |
+| ------------------- | ------------------------------------- | ----------------------------------- |
+| `log_sleep`         | `child_uid`, `start`, `end` (epoch s) | Log a completed sleep session       |
+| `get_sleep_history` | `child_uid`, `limit?`                 | Recent sleep sessions, newest first |
 
-### Feeding (9 tools)
+### Feeding (6)
 
-| Tool                  | Purpose                     |
-| --------------------- | --------------------------- |
-| `start_feeding`       | Begin nursing session       |
-| `pause_feeding`       | Pause active nursing        |
-| `resume_feeding`      | Resume paused nursing       |
-| `switch_feeding_side` | Switch sides during nursing |
-| `complete_feeding`    | Mark nursing as completed   |
-| `log_bottle`          | Log bottle feeding          |
-| `log_pump`            | Log pumped milk             |
-| `list_pump_intervals` | Retrieve pump sessions      |
-| `get_feed_history`    | Retrieve feeding history    |
+| Tool                  | Input                                                                                      | Purpose                    |
+| --------------------- | ------------------------------------------------------------------------------------------ | -------------------------- |
+| `log_nursing`         | `child_uid`, `start`, `left_duration?`, `right_duration?`, `last_side?`                    | Log a nursing session      |
+| `log_bottle`          | `child_uid`, `start`, `amount`, `bottle_type`, `units`                                     | Log a bottle feeding       |
+| `log_solids`          | `child_uid`, `start`                                                                       | Log a solids feeding       |
+| `log_pump`            | `child_uid`, `start`, `left_amount`/`right_amount` or `total_amount`, `units`, `duration?` | Log a pumping session      |
+| `list_pump_intervals` | `child_uid`, `limit?`                                                                      | Recent pump sessions       |
+| `get_feed_history`    | `child_uid`, `limit?`                                                                      | Recent feeds, newest first |
 
-### Health (2 tools)
+### Diaper (3)
 
-| Tool         | Purpose                                                  |
-| ------------ | -------------------------------------------------------- |
-| `log_diaper` | Log diaper change (pee/poo/both/dry + color/consistency) |
-| `log_potty`  | Log potty training activity                              |
+| Tool                 | Input                                                                                                   | Purpose                              |
+| -------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| `log_diaper`         | `child_uid`, `mode` (pee/poo/both/dry), `start`, `color?`, `consistency?`, `pee_amount?`, `poo_amount?` | Log a diaper change                  |
+| `log_potty`          | `child_uid`, `mode` (pee/poo), `start`                                                                  | Log potty training activity          |
+| `get_diaper_history` | `child_uid`, `limit?`                                                                                   | Diaper + potty history, newest first |
 
-### Growth (3 tools)
+### Growth (3)
 
-| Tool                 | Purpose                                               |
-| -------------------- | ----------------------------------------------------- |
-| `log_growth`         | Log measurements (weight, height, head circumference) |
-| `get_latest_growth`  | Get most recent growth record                         |
-| `get_growth_history` | Retrieve growth history                               |
+| Tool                 | Input                                                                            | Purpose                        |
+| -------------------- | -------------------------------------------------------------------------------- | ------------------------------ |
+| `log_growth`         | `child_uid`, `weight?`, `height?`, `head?`, `units?` (metric/imperial), `start?` | Log a growth measurement       |
+| `get_latest_growth`  | `child_uid`                                                                      | Most recent growth measurement |
+| `get_growth_history` | `child_uid`, `limit?`                                                            | Growth history, newest first   |
 
-### Solids (4 tools)
+### Solids — custom foods (3)
 
-| Tool                 | Purpose                     |
-| -------------------- | --------------------------- |
-| `list_curated_foods` | Fetch curated food database |
-| `list_custom_foods`  | List custom foods for child |
-| `create_custom_food` | Create custom food entry    |
-| `log_solids`         | Log solids feeding          |
+| Tool                 | Input                                                    | Purpose                         |
+| -------------------- | -------------------------------------------------------- | ------------------------------- |
+| `list_curated_foods` | —                                                        | Fetch the curated food database |
+| `list_custom_foods`  | `child_uid`                                              | List custom foods for a child   |
+| `create_custom_food` | `child_uid`, `name`, `category?`, `allergens?`, `notes?` | Create a custom food entry      |
+
+> All `start`/`end` inputs are **epoch seconds**. Times are stored with a
+> timezone `offset` derived from `HUCKLEBERRY_TIMEZONE`.
 
 ## Development
 
 ### Scripts
 
 ```bash
-npm run build      # TypeScript → JavaScript (tsc)
-npm run lint       # Lint with oxlint
-npm run format     # Format with oxfmt
-npm run format:check  # Check formatting without changes
-npm test           # Run unit tests (Vitest)
-npm run test:watch # Watch mode for tests
-npm run dev        # Run in dev mode (tsx)
+npm run build            # TypeScript → JavaScript (tsc)
+npm run lint             # Lint with oxlint
+npm run lint:fix         # Lint and auto-fix
+npm run format           # Format with oxfmt
+npm run format:check     # Check formatting without changes
+npm test                 # Run unit tests (Vitest)
+npm run test:watch       # Watch mode for tests
+npm run test:integration # Live read-back tests (needs HUCKLEBERRY_* creds; skipped otherwise)
+npm run inspect:schema   # Dump real Firestore shapes (needs creds) — see docs/integration-testing.md
+npm run smoke            # Build + run the MCP server smoke test
+npm run dev              # Run in dev mode (tsx)
 ```
 
 ### Toolchain
@@ -198,6 +199,14 @@ Watch mode:
 
 ```bash
 npm run test:watch
+```
+
+**Live integration** (gated, read-only) validates the Zod models against a real
+account and is skipped without credentials — see
+[docs/integration-testing.md](./docs/integration-testing.md):
+
+```bash
+HUCKLEBERRY_EMAIL=… HUCKLEBERRY_PASSWORD=… npm run test:integration
 ```
 
 ## Licensing & Attribution
