@@ -35,7 +35,6 @@ layout, and the child-resolution schema (`childList[].cid`). Key facts:
 ```
 TASKS.md             # the roadmap — the source of truth for what to build & in what order
 docs/architecture.md # T0.2 findings: auth/data mechanism, config, schema, toolchain
-spike/               # throwaway T0.2 validation script (not the real client)
 src/
   config.ts          # public Firebase client config
   auth/              # HuckleberryAuth — sign-in + token refresh (T1.1)

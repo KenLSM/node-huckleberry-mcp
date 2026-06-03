@@ -70,9 +70,9 @@ Timestamp), `naps` (string, e.g. `"2"`), plus `nightStart`/`morningCutoff`/`pre`
 `color` live on the user's `childList` entry, not here. `ChildDocument` models
 these and uses `.passthrough()` for resilience.
 
-## What the spike verified (no credentials needed)
+## What T0.2 verified (no credentials needed)
 
-Run via `curl` and `spike/spike.mjs`:
+Verified via direct auth/REST probes during T0.2:
 
 1. **Auth endpoint + API key are live** — `signInWithPassword` with bogus creds
    returns `EMAIL_NOT_FOUND` / `auth/user-not-found`, _not_ `API_KEY_INVALID`.
@@ -87,10 +87,10 @@ Run via `curl` and `spike/spike.mjs`:
 
 ## Verified with real credentials
 
-`spike/spike.mjs` was run against a live account: authentication succeeded and
-`getDoc(users/{uid})` returned the user document (`exists=true`). The child-list
-schema above was discovered from that real document. Nothing in T0.2 remains
-open.
+The Firebase JS SDK approach was also run against a live account:
+authentication succeeded and `getDoc(users/{uid})` returned the user document
+(`exists=true`). The child-list schema above was discovered from that real
+document. Nothing in T0.2 remains open.
 
 ## Implications for the build
 
