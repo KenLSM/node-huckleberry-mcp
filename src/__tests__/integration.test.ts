@@ -49,6 +49,7 @@ describe("MCP server integration", () => {
       "log_solids",
       "log_diaper",
       "log_potty",
+      "get_diaper_history",
       "log_growth",
       "get_latest_growth",
       "list_curated_foods",

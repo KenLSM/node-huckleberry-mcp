@@ -1,9 +1,9 @@
 import { z } from "zod";
 import { registerTool } from "../server/server.js";
 import { getClient } from "../server/auth.js";
-import { logDiaper, logPotty } from "../client/index.js";
+import { logDiaper, logPotty, getDiaperHistory } from "../client/index.js";
 
-// T2.6: Diaper & Potty Tools (2 tools)
+// T2.6: Diaper & Potty Tools (3 tools)
 
 // log_diaper — log a diaper change
 registerTool(
@@ -59,6 +59,28 @@ registerTool(
         {
           type: "text",
           text: JSON.stringify({ potty_id: id }, null, 2),
+        },
+      ],
+    };
+  },
+);
+
+// get_diaper_history — diaper/potty events, most recent first
+registerTool(
+  "get_diaper_history",
+  "Get diaper and potty history for a child, most recent first",
+  z.object({
+    child_uid: z.string().min(1, "child_uid is required"),
+    limit: z.number().min(1).optional(),
+  }),
+  async (input) => {
+    const client = await getClient();
+    const items = await getDiaperHistory(client, input.child_uid, { limit: input.limit });
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(items, null, 2),
         },
       ],
     };
