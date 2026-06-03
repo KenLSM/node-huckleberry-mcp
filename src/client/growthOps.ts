@@ -65,7 +65,11 @@ export async function getGrowthHistory(
   const col = collection(db, "health", childUid, "data");
   const q = query(col, orderBy("start", "desc"), limit(options.limit ?? 50));
   const snap = await getDocs(q);
-  return snap.docs.map((d) => GrowthEntry.parse(d.data()));
+  // health/{cid}/data may hold non-growth health entries; keep only growth.
+  return snap.docs
+    .map((d) => d.data())
+    .filter((d) => (d as { mode?: unknown }).mode === "growth")
+    .map((d) => GrowthEntry.parse(d));
 }
 
 /** Returns the most recent growth entry, or null if none exist. */

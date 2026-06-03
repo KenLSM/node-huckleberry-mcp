@@ -57,6 +57,11 @@ describe("Data Models", () => {
       expect(result.duration).toBe(3600);
       expect(result.offset).toBe(-480);
     });
+
+    it("parses with only start present (resilience)", () => {
+      const result = SleepInterval.parse({ start: 1, inProgress: true });
+      expect(result.start).toBe(1);
+    });
   });
 
   describe("NursingInterval", () => {
@@ -105,29 +110,29 @@ describe("Data Models", () => {
     });
   });
 
-  describe("FeedingInterval (discriminated union)", () => {
-    it("parses a nursing interval via discriminated union", () => {
-      const data = {
-        mode: "breast" as const,
-        start: 1700000000,
-        offset: -480,
-      };
-      const result = FeedingInterval.parse(data);
+  describe("FeedingInterval (lenient read model)", () => {
+    it("parses a nursing interval", () => {
+      const result = FeedingInterval.parse({ mode: "breast", start: 1700000000, offset: -480 });
       expect(result.mode).toBe("breast");
     });
 
-    it("parses a bottle interval via discriminated union", () => {
-      const data = {
-        mode: "bottle" as const,
+    it("parses a bottle interval", () => {
+      const result = FeedingInterval.parse({
+        mode: "bottle",
         start: 1700000000,
         offset: -480,
         amount: 120,
         bottleType: "Breast Milk",
-        units: "ml" as const,
-      };
-      const result = FeedingInterval.parse(data);
+        units: "ml",
+      });
       expect(result.mode).toBe("bottle");
       expect(result.amount).toBe(120);
+    });
+
+    it("does not throw on an unknown mode or extra fields (resilience)", () => {
+      const result = FeedingInterval.parse({ mode: "fortifier", start: 1, somethingNew: true });
+      expect(result.mode).toBe("fortifier");
+      expect((result as Record<string, unknown>).somethingNew).toBe(true);
     });
   });
 
@@ -175,6 +180,12 @@ describe("Data Models", () => {
       expect(result.entryMode).toBe("leftright");
       expect(result.leftAmount).toBe(120);
       expect(result.rightAmount).toBe(100);
+    });
+
+    it("parses a sparse entry with unknown fields (resilience)", () => {
+      const result = PumpInterval.parse({ start: 1, units: "L", note: "x" });
+      expect(result.start).toBe(1);
+      expect(result.units).toBe("L");
     });
   });
 
