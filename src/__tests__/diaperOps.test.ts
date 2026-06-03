@@ -61,12 +61,25 @@ describe("diaperOps", () => {
     expect(prefs().lastPotty).toEqual({ start: 200, offset: OFFSET, mode: "pee" });
   });
 
-  it("getDiaperHistory reads diaper/intervals and parses entries", async () => {
+  it("getDiaperHistory parses scalar + map quantity and passes through extras", async () => {
     mockGetDocs.mockResolvedValue({
-      docs: [{ data: () => ({ mode: "poo", start: 1, offset: OFFSET, quantity: 100 }) }],
+      docs: [
+        { data: () => ({ mode: "poo", start: 1, offset: OFFSET, quantity: 100 }) },
+        // "both" diaper with a per-type quantity map + a potty extra field.
+        {
+          data: () => ({
+            mode: "both",
+            start: 2,
+            quantity: { pee: 50, poo: 100 },
+            isPotty: true,
+            howItHappened: "wentPotty",
+          }),
+        },
+      ],
     });
     const items = await getDiaperHistory(client, "cid", { limit: 5 });
-    expect(items).toHaveLength(1);
+    expect(items).toHaveLength(2);
     expect(items[0]).toMatchObject({ mode: "poo", quantity: 100 });
+    expect(items[1].quantity).toEqual({ pee: 50, poo: 100 });
   });
 });
