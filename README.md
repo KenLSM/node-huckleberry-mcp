@@ -84,7 +84,7 @@ After updating the config, restart Claude Desktop. The Huckleberry tools will ap
 
 ## Tools
 
-The server exposes **19 tools** across 6 categories. (Active-session sleep/feed
+The server exposes **20 tools** across 6 categories. (Active-session sleep/feed
 timers — `start_sleep`, `pause_feeding`, etc. — are not implemented; use the
 explicit `log_*` tools to record completed events.)
 
@@ -102,16 +102,17 @@ explicit `log_*` tools to record completed events.)
 | `log_sleep`         | `child_uid`, `start`, `end` (epoch s) | Log a completed sleep session       |
 | `get_sleep_history` | `child_uid`, `limit?`                 | Recent sleep sessions, newest first |
 
-### Feeding (6)
+### Feeding (7)
 
-| Tool                  | Input                                                                                      | Purpose                    |
-| --------------------- | ------------------------------------------------------------------------------------------ | -------------------------- |
-| `log_nursing`         | `child_uid`, `start`, `left_duration?`, `right_duration?`, `last_side?`                    | Log a nursing session      |
-| `log_bottle`          | `child_uid`, `start`, `amount`, `bottle_type`, `units`                                     | Log a bottle feeding       |
-| `log_solids`          | `child_uid`, `start`                                                                       | Log a solids feeding       |
-| `log_pump`            | `child_uid`, `start`, `left_amount`/`right_amount` or `total_amount`, `units`, `duration?` | Log a pumping session      |
-| `list_pump_intervals` | `child_uid`, `limit?`                                                                      | Recent pump sessions       |
-| `get_feed_history`    | `child_uid`, `limit?`                                                                      | Recent feeds, newest first |
+| Tool                  | Input                                                                                                                    | Purpose                                 |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------ | --------------------------------------- |
+| `log_nursing`         | `child_uid`, `start`, `left_duration?`, `right_duration?`, `last_side?`                                                  | Log a nursing session                   |
+| `log_bottle`          | `child_uid`, `start`, `amount`, `bottle_type`, `units`                                                                   | Log a bottle feeding                    |
+| `log_solids`          | `child_uid`, `start`                                                                                                     | Log a solids feeding                    |
+| `log_pump`            | `child_uid`, `start`, `left_amount`/`right_amount` or `total_amount`, `units`, `duration?`                               | Log a pumping session                   |
+| `list_pump_intervals` | `child_uid`, `limit?`                                                                                                    | Recent pump sessions                    |
+| `get_feed_history`    | `child_uid`, `limit?`                                                                                                    | Recent feeds (incl. `id`), newest first |
+| `edit_feed`           | `child_uid`, `interval_id`, + any of `start`/`amount`/`bottle_type`/`units`/`left_duration`/`right_duration`/`last_side` | Edit an existing feed entry             |
 
 ### Diaper (3)
 

@@ -48,6 +48,7 @@ describe("MCP server integration", () => {
       "log_nursing",
       "log_bottle",
       "log_solids",
+      "edit_feed",
       "log_diaper",
       "log_potty",
       "get_diaper_history",

@@ -3,26 +3,38 @@ import type { HuckleberryClient } from "../client/HuckleberryClient.js";
 
 // Mock firebase/firestore so we can assert the exact document bodies written.
 // collection()/doc() return the path so we can verify the right collection.
-const { mockAddDoc, mockSetDoc, mockGetDocs, mockCollection, mockDoc } = vi.hoisted(() => ({
-  mockAddDoc: vi.fn(async () => ({ id: "new-id" })),
-  mockSetDoc: vi.fn(async () => undefined),
-  mockGetDocs: vi.fn(),
-  mockCollection: vi.fn((_db: unknown, ...seg: string[]) => ({ path: seg.join("/") })),
-  mockDoc: vi.fn((_db: unknown, ...seg: string[]) => ({ path: seg.join("/") })),
-}));
+const { mockAddDoc, mockSetDoc, mockUpdateDoc, mockGetDocs, mockCollection, mockDoc } = vi.hoisted(
+  () => ({
+    mockAddDoc: vi.fn(async () => ({ id: "new-id" })),
+    mockSetDoc: vi.fn(async () => undefined),
+    mockUpdateDoc: vi.fn(async () => undefined),
+    mockGetDocs: vi.fn(),
+    mockCollection: vi.fn((_db: unknown, ...seg: string[]) => ({ path: seg.join("/") })),
+    mockDoc: vi.fn((_db: unknown, ...seg: string[]) => ({ path: seg.join("/") })),
+  }),
+);
 
 vi.mock("firebase/firestore", () => ({
   collection: mockCollection,
   doc: mockDoc,
   addDoc: mockAddDoc,
   setDoc: mockSetDoc,
+  updateDoc: mockUpdateDoc,
   getDocs: mockGetDocs,
   query: (col: unknown) => col,
   orderBy: () => ({}),
   limit: () => ({}),
 }));
 
-import { logNursing, logBottle, logSolids, logPump, listPumpIntervals } from "../client/feedOps.js";
+import {
+  logNursing,
+  logBottle,
+  logSolids,
+  logPump,
+  listPumpIntervals,
+  getFeedHistory,
+  editFeed,
+} from "../client/feedOps.js";
 
 const OFFSET = -480;
 const client = {
@@ -135,5 +147,30 @@ describe("feedOps reads", () => {
     const res = await listPumpIntervals(client, "cid");
     expect(res).toHaveLength(1);
     expect(res[0]).toMatchObject({ entryMode: "total", leftAmount: 6, units: "oz" });
+  });
+
+  it("getFeedHistory includes the doc id (needed for editFeed)", async () => {
+    mockGetDocs.mockResolvedValue({
+      docs: [
+        { id: "feed-123", data: () => ({ mode: "bottle", start: 1, amount: 90, units: "ml" }) },
+      ],
+    });
+    const res = await getFeedHistory(client, "cid");
+    expect(res[0]).toMatchObject({ id: "feed-123", mode: "bottle", amount: 90 });
+  });
+});
+
+describe("editFeed", () => {
+  it("updates only provided fields on feed/{cid}/intervals/{id} + bumps lastUpdated", async () => {
+    await editFeed(client, "cid", "feed-123", { amount: 150, units: "ml" });
+    const [ref, patch] = mockUpdateDoc.mock.calls[0] as [{ path: string }, Record<string, unknown>];
+    expect(ref.path).toBe("feed/cid/intervals/feed-123");
+    expect(patch).toMatchObject({ amount: 150, units: "ml" });
+    expect(typeof patch.lastUpdated).toBe("number");
+    expect(patch.bottleType).toBeUndefined();
+  });
+
+  it("throws when no fields are provided", async () => {
+    await expect(editFeed(client, "cid", "feed-123", {})).rejects.toThrow("at least one");
   });
 });

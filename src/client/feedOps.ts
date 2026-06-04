@@ -1,4 +1,4 @@
-import { collection, getDocs, query, orderBy, limit } from "firebase/firestore";
+import { collection, doc, updateDoc, getDocs, query, orderBy, limit } from "firebase/firestore";
 import type { HuckleberryClient } from "./HuckleberryClient.js";
 import {
   FeedingInterval,
@@ -146,18 +146,64 @@ export interface FeedHistoryOptions {
   limit?: number;
 }
 
-/** Returns feed intervals for a child, ordered by start descending. */
+/** Returns feed intervals for a child, ordered by start descending. Each entry
+ * includes its Firestore doc `id` so it can be referenced by `editFeed`. */
 export async function getFeedHistory(
   client: HuckleberryClient,
   childUid: string,
   options: FeedHistoryOptions = {},
-): Promise<FeedingIntervalParsed[]> {
+): Promise<(FeedingIntervalParsed & { id: string })[]> {
   await client.connect();
   const db = client.getFirestore();
   const col = collection(db, "feed", childUid, "intervals");
   const q = query(col, orderBy("start", "desc"), limit(options.limit ?? 50));
   const snap = await getDocs(q);
-  return snap.docs.map((d) => FeedingInterval.parse(d.data()));
+  return snap.docs.map((d) => ({ id: d.id, ...FeedingInterval.parse(d.data()) }));
+}
+
+// ── Edit feed ────────────────────────────────────────────────────────────────
+
+export interface EditFeedOptions {
+  /** Event time (epoch seconds). */
+  start?: number;
+  // bottle
+  amount?: number;
+  bottleType?: string;
+  units?: "ml" | "oz";
+  // nursing
+  leftDuration?: number;
+  rightDuration?: number;
+  lastSide?: "left" | "right";
+}
+
+/**
+ * Updates fields on an existing feed interval (`feed/{cid}/intervals/{id}`).
+ * Only the provided fields are changed; `lastUpdated` is bumped. The interval id
+ * comes from `getFeedHistory`. Does not touch the parent `prefs` summary.
+ */
+export async function editFeed(
+  client: HuckleberryClient,
+  childUid: string,
+  intervalId: string,
+  updates: EditFeedOptions,
+): Promise<void> {
+  const patch: Record<string, unknown> = {
+    ...(updates.start !== undefined && { start: updates.start }),
+    ...(updates.amount !== undefined && { amount: updates.amount }),
+    ...(updates.bottleType !== undefined && { bottleType: updates.bottleType }),
+    ...(updates.units !== undefined && { units: updates.units }),
+    ...(updates.leftDuration !== undefined && { leftDuration: updates.leftDuration }),
+    ...(updates.rightDuration !== undefined && { rightDuration: updates.rightDuration }),
+    ...(updates.lastSide !== undefined && { lastSide: updates.lastSide }),
+  };
+  if (Object.keys(patch).length === 0) {
+    throw new Error("editFeed requires at least one field to update");
+  }
+  patch.lastUpdated = Date.now() / 1000;
+
+  await client.connect();
+  const db = client.getFirestore();
+  await updateDoc(doc(db, "feed", childUid, "intervals", intervalId), patch);
 }
 
 // ── Pump ───────────────────────────────────────────────────────────────────

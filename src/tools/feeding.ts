@@ -8,9 +8,10 @@ import {
   logPump,
   listPumpIntervals,
   getFeedHistory,
+  editFeed,
 } from "../client/index.js";
 
-// T2.5: Feeding Tools (6 tools)
+// T2.5: Feeding Tools (7 tools)
 
 // log_nursing — log a nursing session
 registerTool(
@@ -174,6 +175,38 @@ registerTool(
           text: JSON.stringify(result, null, 2),
         },
       ],
+    };
+  },
+);
+
+// edit_feed — update fields on an existing feed entry (id from get_feed_history)
+registerTool(
+  "edit_feed",
+  "Edit an existing feed entry. Get the interval_id from get_feed_history first.",
+  z.object({
+    child_uid: z.string().min(1, "child_uid is required"),
+    interval_id: z.string().min(1, "interval_id is required (from get_feed_history)"),
+    start: z.number().min(0).optional(),
+    amount: z.number().min(0).optional(),
+    bottle_type: z.string().optional(),
+    units: z.enum(["ml", "oz"]).optional(),
+    left_duration: z.number().min(0).optional(),
+    right_duration: z.number().min(0).optional(),
+    last_side: z.enum(["left", "right"]).optional(),
+  }),
+  async (input) => {
+    const client = await getClient();
+    await editFeed(client, input.child_uid, input.interval_id, {
+      start: input.start,
+      amount: input.amount,
+      bottleType: input.bottle_type,
+      units: input.units,
+      leftDuration: input.left_duration,
+      rightDuration: input.right_duration,
+      lastSide: input.last_side,
+    });
+    return {
+      content: [{ type: "text", text: JSON.stringify({ edited: input.interval_id }, null, 2) }],
     };
   },
 );
