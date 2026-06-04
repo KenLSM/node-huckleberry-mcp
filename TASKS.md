@@ -116,6 +116,15 @@ complete_sleep`) are deferred — only `log_sleep` is implemented.
 
 ---
 
+## Backlog / enhancements (not yet scheduled)
+
+| ID  | Task                                                                                                                                                | Notes                                                                                                                                                                                              | Model      |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| B1  | Add optional `notes` to the remaining `log_*` tools (`log_nursing`, `log_solids`, `log_pump`, `log_diaper`, `log_potty`, `log_sleep`, `log_growth`) | The Python `firebase_types.py` has a `notes: str` field on every interval. Mirror the `log_bottle` change: thread `notes?` through each op + tool, write only when provided, add a unit assertion. | Haiku 4.5  |
+| B2  | `edit_*` tools for the other trackers (sleep, diaper, pump, growth) + expose the doc `id` in their history reads                                    | Follow the `edit_feed` / `getFeedHistory`-returns-`id` pattern.                                                                                                                                    | Haiku 4.5  |
+| B3  | `delete_*` (or `cancel_*`) tools to remove a logged entry                                                                                           | `deleteDoc` on `{collection}/{cid}/{sub}/{id}`; decide whether to also clear the matching `prefs.last*`.                                                                                           | Sonnet 4.6 |
+| B4  | T1.10 — real-time listeners via `onSnapshot` (optional)                                                                                             | Maps cleanly to the SDK; only if a use case needs live updates.                                                                                                                                    | Sonnet 4.6 |
+
 ## Sequencing & risk notes
 
 1. **T0.2 is the linchpin** — the project depends on Node replicating the
