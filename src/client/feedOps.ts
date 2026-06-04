@@ -62,6 +62,7 @@ export interface LogBottleOptions {
   amount: number;
   bottleType: string;
   units: "ml" | "oz";
+  notes?: string;
   time?: Date;
 }
 
@@ -86,6 +87,7 @@ export async function logBottle(
       amount: options.amount,
       bottleType: options.bottleType,
       units: options.units,
+      ...(options.notes !== undefined && { notes: options.notes }),
       lastUpdated,
     },
     prefs: {
@@ -174,6 +176,7 @@ export interface EditFeedOptions {
   leftDuration?: number;
   rightDuration?: number;
   lastSide?: "left" | "right";
+  notes?: string;
 }
 
 /**
@@ -195,6 +198,7 @@ export async function editFeed(
     ...(updates.leftDuration !== undefined && { leftDuration: updates.leftDuration }),
     ...(updates.rightDuration !== undefined && { rightDuration: updates.rightDuration }),
     ...(updates.lastSide !== undefined && { lastSide: updates.lastSide }),
+    ...(updates.notes !== undefined && { notes: updates.notes }),
   };
   if (Object.keys(patch).length === 0) {
     throw new Error("editFeed requires at least one field to update");

@@ -78,12 +78,13 @@ describe("feedOps writes", () => {
     expect(prefs.lastSide).toEqual({ lastSide: "left", start: 1000 });
   });
 
-  it("logBottle writes feed/intervals + bottle prefs", async () => {
+  it("logBottle writes feed/intervals + bottle prefs (with optional notes)", async () => {
     await logBottle(client, "cid", {
       start: 5,
       amount: 177,
       bottleType: "Breast Milk",
       units: "ml",
+      notes: "took it well",
     });
     expect(lastIntervalPath()).toBe("feed/cid/intervals");
     expect(lastInterval()).toMatchObject({
@@ -91,12 +92,18 @@ describe("feedOps writes", () => {
       amount: 177,
       bottleType: "Breast Milk",
       units: "ml",
+      notes: "took it well",
     });
     expect(lastPrefs()).toMatchObject({
       bottleAmount: 177,
       bottleUnits: "ml",
       bottleType: "Breast Milk",
     });
+  });
+
+  it("logBottle omits notes when not provided", async () => {
+    await logBottle(client, "cid", { start: 5, amount: 90, bottleType: "Formula", units: "ml" });
+    expect(lastInterval().notes).toBeUndefined();
   });
 
   it("logSolids writes feed/intervals with mode solids", async () => {

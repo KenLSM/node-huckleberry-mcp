@@ -107,7 +107,7 @@ explicit `log_*` tools to record completed events.)
 | Tool                  | Input                                                                                                                    | Purpose                                 |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------ | --------------------------------------- |
 | `log_nursing`         | `child_uid`, `start`, `left_duration?`, `right_duration?`, `last_side?`                                                  | Log a nursing session                   |
-| `log_bottle`          | `child_uid`, `start`, `amount`, `bottle_type`, `units`                                                                   | Log a bottle feeding                    |
+| `log_bottle`          | `child_uid`, `start`, `amount`, `bottle_type`, `units`, `notes?`                                                         | Log a bottle feeding                    |
 | `log_solids`          | `child_uid`, `start`                                                                                                     | Log a solids feeding                    |
 | `log_pump`            | `child_uid`, `start`, `left_amount`/`right_amount` or `total_amount`, `units`, `duration?`                               | Log a pumping session                   |
 | `list_pump_intervals` | `child_uid`, `limit?`                                                                                                    | Recent pump sessions                    |

@@ -18,6 +18,7 @@ export const BottleInterval = z.object({
   amount: z.number(),
   bottleType: z.string(),
   units: z.enum(["ml", "oz"]),
+  notes: z.string().optional(),
   lastUpdated: z.number().optional(),
 });
 

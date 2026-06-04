@@ -53,6 +53,7 @@ registerTool(
     amount: z.number().min(0, "amount is required"),
     bottle_type: z.string().min(1, "bottle_type is required (e.g. Breast Milk, Formula)"),
     units: z.enum(["ml", "oz"]),
+    notes: z.string().optional(),
   }),
   async (input) => {
     const client = await getClient();
@@ -61,6 +62,7 @@ registerTool(
       amount: input.amount,
       bottleType: input.bottle_type,
       units: input.units,
+      notes: input.notes,
     });
     return {
       content: [
@@ -193,6 +195,7 @@ registerTool(
     left_duration: z.number().min(0).optional(),
     right_duration: z.number().min(0).optional(),
     last_side: z.enum(["left", "right"]).optional(),
+    notes: z.string().optional(),
   }),
   async (input) => {
     const client = await getClient();
@@ -204,6 +207,7 @@ registerTool(
       leftDuration: input.left_duration,
       rightDuration: input.right_duration,
       lastSide: input.last_side,
+      notes: input.notes,
     });
     return {
       content: [{ type: "text", text: JSON.stringify({ edited: input.interval_id }, null, 2) }],
