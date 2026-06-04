@@ -25,17 +25,17 @@ jobs:
           fi
 
       - name: Checkout Code at Specific Tag
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ inputs.tag }}
           persist-credentials: false
 
       - name: Use Node.js 24
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 24.x
           registry-url: https://registry.npmjs.org
-          cache: npm
+          package-manager-cache: false # never use caching in release builds
 
       # `npm stage publish` requires npm >= 11.15.0, newer than the npm bundled with
       # this workflow's Node. Remove this step once Node bundles npm >= 11.15.0 by default.
