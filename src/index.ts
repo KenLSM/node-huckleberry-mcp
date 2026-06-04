@@ -3,6 +3,9 @@
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { createServer } from "./server/index.js";
 
+// Registering prompt templates (side-effect import).
+import "./server/prompts.js";
+
 // Tool categories are registered by importing their modules.
 // Each import calls registerTool() at module load time.
 import "./tools/childManagement.js";

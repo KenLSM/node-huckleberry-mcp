@@ -19,6 +19,8 @@ vi.mock("@modelcontextprotocol/sdk/server/index.js", () => ({
 vi.mock("@modelcontextprotocol/sdk/types.js", () => ({
   ListToolsRequestSchema: { method: "tools/list" },
   CallToolRequestSchema: { method: "tools/call" },
+  ListPromptsRequestSchema: { method: "prompts/list" },
+  GetPromptRequestSchema: { method: "prompts/get" },
 }));
 
 // Import after mocks

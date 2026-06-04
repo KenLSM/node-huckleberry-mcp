@@ -2,6 +2,8 @@ import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import {
   ListToolsRequestSchema,
   CallToolRequestSchema,
+  ListPromptsRequestSchema,
+  GetPromptRequestSchema,
   type Tool,
   type CallToolResult,
 } from "@modelcontextprotocol/sdk/types.js";
@@ -17,6 +19,29 @@ interface ToolRegistration {
 }
 
 const registrations: ToolRegistration[] = [];
+
+// ── Prompts ────────────────────────────────────────────────────────────────
+
+export interface PromptArgument {
+  name: string;
+  description: string;
+  required?: boolean;
+}
+
+interface PromptRegistration {
+  name: string;
+  description: string;
+  arguments: PromptArgument[];
+  /** Builds the prompt's user-message text from the provided arguments. */
+  build: (args: Record<string, string>) => string;
+}
+
+const promptRegistrations: PromptRegistration[] = [];
+
+/** Registers an MCP prompt (a reusable, parameterised message template). */
+export function registerPrompt(prompt: PromptRegistration): void {
+  promptRegistrations.push(prompt);
+}
 
 /**
  * Registers an MCP tool.
@@ -54,12 +79,40 @@ export function registerTool<TSchema extends z.ZodObject<z.ZodRawShape>>(
 export function createServer(): Server {
   const server = new Server(
     { name: "node-huckleberry-mcp", version: "0.1.0" },
-    { capabilities: { tools: {} } },
+    { capabilities: { tools: {}, prompts: {} } },
   );
 
   server.setRequestHandler(ListToolsRequestSchema, () => ({
     tools: registrations.map((r) => r.definition),
   }));
+
+  server.setRequestHandler(ListPromptsRequestSchema, () => ({
+    prompts: promptRegistrations.map((p) => ({
+      name: p.name,
+      description: p.description,
+      arguments: p.arguments,
+    })),
+  }));
+
+  server.setRequestHandler(
+    GetPromptRequestSchema,
+    (request: { params: { name: string; arguments?: Record<string, string> } }) => {
+      const { name, arguments: args } = request.params;
+      const prompt = promptRegistrations.find((p) => p.name === name);
+      if (!prompt) {
+        throw new Error(`Unknown prompt: ${name}`);
+      }
+      return {
+        description: prompt.description,
+        messages: [
+          {
+            role: "user" as const,
+            content: { type: "text" as const, text: prompt.build(args ?? {}) },
+          },
+        ],
+      };
+    },
+  );
 
   server.setRequestHandler(
     CallToolRequestSchema,
