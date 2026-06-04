@@ -33,15 +33,40 @@ layout, and the child-resolution schema (`childList[].cid`). Key facts:
 ## Repo layout
 
 ```
-TASKS.md             # the roadmap — the source of truth for what to build & in what order
-docs/architecture.md # T0.2 findings: auth/data mechanism, config, schema, toolchain
+TASKS.md                  # the roadmap / status
+docs/architecture.md      # auth + data mechanism, live-verified Firestore schema, toolchain
+docs/schema-port-spec.md  # exact build-to spec for the client ops/models
+docs/integration-testing.md # how to run the gated live suite + schema inspector
+scripts/inspect-schema.mjs  # dumps real Firestore shapes (needs creds) — ground truth
+.github/workflows/        # ci.yml (Node 24), inspect-schema.yml, live-integration.yml
 src/
-  config.ts          # public Firebase client config
-  auth/              # HuckleberryAuth — sign-in + token refresh (T1.1)
-  client/            # HuckleberryClient — Firestore read/write base (T1.2)
-  __tests__/         # Vitest unit tests
-  index.ts           # entry point (MCP server bootstrap lands here in T2.1)
+  config.ts        # public Firebase client config + TOKEN_EXPIRY_MARGIN_MS
+  util/timezone.ts # huckleberryOffsetMinutes() — the `offset` field
+  auth/            # HuckleberryAuth — sign-in + SDK-managed refresh
+  client/          # HuckleberryClient (base) + prefs.ts helper + *Ops.ts per tracker
+  models/          # Zod schemas per document type
+  server/          # MCP server bootstrap, lazy auth (getClient), error handling
+  tools/           # MCP tool registrations (19 tools), imported by index.ts
+  __tests__/       # Vitest unit tests + gated live.integration.test.ts
+  index.ts         # entry point: registers tools, starts the stdio MCP server
 ```
+
+## Schema & data conventions (live-verified)
+
+- Firestore stores **epoch-second number** timestamps (`start`, `lastUpdated`),
+  `duration` in seconds, and `offset` = negated tz minutes (UTC+8 → `-480`, via
+  `util/timezone.ts`). **Never** write Firestore `Timestamp` objects.
+- Each tracker is `{collection}/{cid}` with entries in a subcollection
+  (`intervals`, or `data` for growth) **plus** a parent `prefs` summary updated on
+  every write (`client/prefs.ts` `writeIntervalWithPrefs`). Growth is the
+  exception — it does **not** update `prefs`.
+- **Read models are deliberately lenient**: no enums on backend-controlled values
+  (modes, units), only truly-always-present fields required, `.passthrough()` for
+  unknowns. Over-constraining read models has repeatedly broken on real data
+  (gender, diaper quantity). The **write tools** keep strict input validation.
+- Ground-truth the schema with `npm run inspect:schema`; validate parsing with
+  `npm run test:integration` (both gated on `HUCKLEBERRY_*` creds). Don't invent
+  fields — if unsure, inspect a real document.
 
 ## How to pick up work
 
