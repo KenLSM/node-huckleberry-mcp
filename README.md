@@ -140,6 +140,19 @@ explicit `log_*` tools to record completed events.)
 > All `start`/`end` inputs are **epoch seconds**. Times are stored with a
 > timezone `offset` derived from `HUCKLEBERRY_TIMEZONE`.
 
+### Prompts
+
+The server also exposes MCP **prompts** (slash-command-style templates in clients
+that support them): `huckleberry_usage` (loads the usage conventions),
+`daily_summary` (`date?`), and `log_event` (`event`).
+
+### Agent skill
+
+`skills/huckleberry/SKILL.md` teaches an assistant how to use these tools
+correctly (child resolution, natural-language time → epoch seconds, units,
+confirm-before-write). Copy it into your Claude skills directory to make the MCP
+smoother to use.
+
 ## Development
 
 ### Scripts

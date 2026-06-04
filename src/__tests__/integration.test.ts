@@ -10,6 +10,7 @@ import "../tools/feeding.js";
 import "../tools/diaper.js";
 import "../tools/growth.js";
 import "../tools/solids.js";
+import "../server/prompts.js";
 
 /**
  * T3.3 integration smoke test: boot the MCP server over an in-memory transport
@@ -62,5 +63,19 @@ describe("MCP server integration", () => {
     const client = await connectedClient();
     const result = await client.callTool({ name: "does_not_exist", arguments: {} });
     expect(result.isError).toBe(true);
+  });
+
+  it("lists prompts and resolves one with its arguments", async () => {
+    const client = await connectedClient();
+    const { prompts } = await client.listPrompts();
+    const names = prompts.map((p) => p.name);
+    expect(names).toEqual(
+      expect.arrayContaining(["huckleberry_usage", "daily_summary", "log_event"]),
+    );
+
+    const result = await client.getPrompt({ name: "daily_summary", arguments: { date: "today" } });
+    const text = result.messages[0].content.type === "text" ? result.messages[0].content.text : "";
+    expect(text).toContain("today");
+    expect(text.toLowerCase()).toContain("summarise");
   });
 });
