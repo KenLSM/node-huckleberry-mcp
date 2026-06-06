@@ -166,7 +166,7 @@ npm run format           # Format with oxfmt
 npm run format:check     # Check formatting without changes
 npm test                 # Run unit tests (Vitest)
 npm run test:watch       # Watch mode for tests
-npm run test:integration # Live read-back tests (needs HUCKLEBERRY_* creds; skipped otherwise)
+npm run test:integration # Live tests (needs HUCKLEBERRY_* creds; skipped otherwise). Read-only by default; set HUCKLEBERRY_ALLOW_WRITES=1 to also run the log_*→delete write round-trip (test account only)
 npm run inspect:schema   # Dump real Firestore shapes (needs creds) — see docs/integration-testing.md
 npm run smoke            # Build + run the MCP server smoke test
 npm run dev              # Run in dev mode (tsx)
@@ -215,12 +215,17 @@ Watch mode:
 npm run test:watch
 ```
 
-**Live integration** (gated, read-only) validates the Zod models against a real
-account and is skipped without credentials — see
-[docs/integration-testing.md](./docs/integration-testing.md):
+**Live integration** (gated) validates against a real account and is skipped
+without credentials. It is read-only by default; an opt-in `log_*`→delete write
+round-trip runs only with `HUCKLEBERRY_ALLOW_WRITES=1` (use a test account) —
+see [docs/integration-testing.md](./docs/integration-testing.md):
 
 ```bash
+# read-only schema validation
 HUCKLEBERRY_EMAIL=… HUCKLEBERRY_PASSWORD=… npm run test:integration
+
+# also exercise log_*→delete writes (test account only)
+HUCKLEBERRY_EMAIL=… HUCKLEBERRY_PASSWORD=… HUCKLEBERRY_ALLOW_WRITES=1 npm run test:integration
 ```
 
 ## Licensing & Attribution
