@@ -84,7 +84,7 @@ After updating the config, restart Claude Desktop. The Huckleberry tools will ap
 
 ## Tools
 
-The server exposes **20 tools** across 6 categories. (Active-session sleep/feed
+The server exposes **24 tools** across 6 categories. (Active-session sleep/feed
 timers — `start_sleep`, `pause_feeding`, etc. — are not implemented; use the
 explicit `log_*` tools to record completed events.)
 
@@ -95,14 +95,15 @@ explicit `log_*` tools to record completed events.)
 | `get_user`  | —           | User profile + child UID list                       |
 | `get_child` | `child_uid` | Child profile (`childsName`, `gender`, `birthdate`) |
 
-### Sleep (2)
+### Sleep (3)
 
-| Tool                | Input                                           | Purpose                             |
-| ------------------- | ----------------------------------------------- | ----------------------------------- |
-| `log_sleep`         | `child_uid`, `start`, `end` (epoch s), `notes?` | Log a completed sleep session       |
-| `get_sleep_history` | `child_uid`, `limit?`                           | Recent sleep sessions, newest first |
+| Tool                | Input                                                           | Purpose                            |
+| ------------------- | --------------------------------------------------------------- | ---------------------------------- |
+| `log_sleep`         | `child_uid`, `start`, `end` (epoch s), `notes?`                 | Log a completed sleep session      |
+| `get_sleep_history` | `child_uid`, `limit?`                                           | Recent sleep sessions (incl. `id`) |
+| `edit_sleep`        | `child_uid`, `interval_id`, + any of `start`/`duration`/`notes` | Edit an existing sleep entry       |
 
-### Feeding (7)
+### Feeding (8)
 
 | Tool                  | Input                                                                                                                            | Purpose                                 |
 | --------------------- | -------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
@@ -110,25 +111,28 @@ explicit `log_*` tools to record completed events.)
 | `log_bottle`          | `child_uid`, `start`, `amount`, `bottle_type`, `units`, `notes?`                                                                 | Log a bottle feeding                    |
 | `log_solids`          | `child_uid`, `start`, `notes?`                                                                                                   | Log a solids feeding                    |
 | `log_pump`            | `child_uid`, `start`, `left_amount`/`right_amount` or `total_amount`, `units`, `duration?`, `notes?`                             | Log a pumping session                   |
-| `list_pump_intervals` | `child_uid`, `limit?`                                                                                                            | Recent pump sessions                    |
+| `list_pump_intervals` | `child_uid`, `limit?`                                                                                                            | Recent pump sessions (incl. `id`)       |
 | `get_feed_history`    | `child_uid`, `limit?`                                                                                                            | Recent feeds (incl. `id`), newest first |
 | `edit_feed`           | `child_uid`, `interval_id`, + any of `start`/`amount`/`bottle_type`/`units`/`left_duration`/`right_duration`/`last_side`/`notes` | Edit an existing feed entry             |
+| `edit_pump`           | `child_uid`, `interval_id`, + any of `start`/`left_amount`/`right_amount`/`units`/`duration`/`notes`                             | Edit an existing pump entry             |
 
-### Diaper (3)
+### Diaper (4)
 
-| Tool                 | Input                                                                                                             | Purpose                              |
-| -------------------- | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
-| `log_diaper`         | `child_uid`, `mode` (pee/poo/both/dry), `start`, `color?`, `consistency?`, `pee_amount?`, `poo_amount?`, `notes?` | Log a diaper change                  |
-| `log_potty`          | `child_uid`, `mode` (pee/poo), `start`, `notes?`                                                                  | Log potty training activity          |
-| `get_diaper_history` | `child_uid`, `limit?`                                                                                             | Diaper + potty history, newest first |
+| Tool                 | Input                                                                                                             | Purpose                             |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| `log_diaper`         | `child_uid`, `mode` (pee/poo/both/dry), `start`, `color?`, `consistency?`, `pee_amount?`, `poo_amount?`, `notes?` | Log a diaper change                 |
+| `log_potty`          | `child_uid`, `mode` (pee/poo), `start`, `notes?`                                                                  | Log potty training activity         |
+| `get_diaper_history` | `child_uid`, `limit?`                                                                                             | Diaper + potty history (incl. `id`) |
+| `edit_diaper`        | `child_uid`, `interval_id`, + any of `start`/`mode`/`color`/`consistency`/`pee_amount`/`poo_amount`/`notes`       | Edit an existing diaper/potty entry |
 
-### Growth (3)
+### Growth (4)
 
-| Tool                 | Input                                                                                      | Purpose                        |
-| -------------------- | ------------------------------------------------------------------------------------------ | ------------------------------ |
-| `log_growth`         | `child_uid`, `weight?`, `height?`, `head?`, `units?` (metric/imperial), `start?`, `notes?` | Log a growth measurement       |
-| `get_latest_growth`  | `child_uid`                                                                                | Most recent growth measurement |
-| `get_growth_history` | `child_uid`, `limit?`                                                                      | Growth history, newest first   |
+| Tool                 | Input                                                                                      | Purpose                                     |
+| -------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------- |
+| `log_growth`         | `child_uid`, `weight?`, `height?`, `head?`, `units?` (metric/imperial), `start?`, `notes?` | Log a growth measurement                    |
+| `get_latest_growth`  | `child_uid`                                                                                | Most recent growth measurement (incl. `id`) |
+| `get_growth_history` | `child_uid`, `limit?`                                                                      | Growth history (incl. `id`)                 |
+| `edit_growth`        | `child_uid`, `entry_id`, + any of `start`/`weight`/`height`/`head`/`units`/`notes`         | Edit an existing growth measurement         |
 
 ### Solids — custom foods (3)
 
@@ -142,8 +146,10 @@ explicit `log_*` tools to record completed events.)
 > timezone `offset` derived from `HUCKLEBERRY_TIMEZONE`.
 >
 > Every `log_*` tool accepts an optional free-text `notes` field, which is stored
-> on the entry and returned by the matching history/`get_*` tool. `edit_feed`
-> can update `notes` on an existing feed entry.
+> on the entry and returned by the matching history/`get_*` tool (each read entry
+> includes its Firestore `id`). The `edit_*` tools (`edit_sleep`, `edit_feed`,
+> `edit_pump`, `edit_diaper`, `edit_growth`) update `notes` and other fields on an
+> existing entry — pass the `id`/`interval_id`/`entry_id` from the matching read.
 
 ### Prompts
 

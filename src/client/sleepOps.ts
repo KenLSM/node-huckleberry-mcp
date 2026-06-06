@@ -1,4 +1,4 @@
-import { collection, getDocs, query, orderBy, limit } from "firebase/firestore";
+import { collection, doc, updateDoc, getDocs, query, orderBy, limit } from "firebase/firestore";
 import type { HuckleberryClient } from "./HuckleberryClient.js";
 import { SleepInterval, type SleepIntervalParsed } from "../models/index.js";
 import { writeIntervalWithPrefs } from "./prefs.js";
@@ -55,17 +55,54 @@ export interface SleepHistoryOptions {
 }
 
 /**
- * Returns sleep intervals for a child, ordered by start descending.
+ * Returns sleep intervals for a child, ordered by start descending. Each entry
+ * includes its Firestore doc `id` so it can be referenced by `editSleep`.
  */
 export async function getSleepHistory(
   client: HuckleberryClient,
   childUid: string,
   options: SleepHistoryOptions = {},
-): Promise<SleepIntervalParsed[]> {
+): Promise<(SleepIntervalParsed & { id: string })[]> {
   await client.connect();
   const db = client.getFirestore();
   const col = collection(db, "sleep", childUid, "intervals");
   const q = query(col, orderBy("start", "desc"), limit(options.limit ?? 50));
   const snap = await getDocs(q);
-  return snap.docs.map((d) => SleepInterval.parse(d.data()));
+  return snap.docs.map((d) => ({ id: d.id, ...SleepInterval.parse(d.data()) }));
+}
+
+// ── Edit sleep ───────────────────────────────────────────────────────────────
+
+export interface EditSleepOptions {
+  /** Event start (epoch seconds). */
+  start?: number;
+  /** Duration in seconds. */
+  duration?: number;
+  notes?: string;
+}
+
+/**
+ * Updates fields on an existing sleep interval (`sleep/{cid}/intervals/{id}`).
+ * Only the provided fields are changed; `lastUpdated` is bumped. The interval id
+ * comes from `getSleepHistory`. Does not touch the parent `prefs` summary.
+ */
+export async function editSleep(
+  client: HuckleberryClient,
+  childUid: string,
+  intervalId: string,
+  updates: EditSleepOptions,
+): Promise<void> {
+  const patch: Record<string, unknown> = {
+    ...(updates.start !== undefined && { start: updates.start }),
+    ...(updates.duration !== undefined && { duration: updates.duration }),
+    ...(updates.notes !== undefined && { notes: updates.notes }),
+  };
+  if (Object.keys(patch).length === 0) {
+    throw new Error("editSleep requires at least one field to update");
+  }
+  patch.lastUpdated = Date.now() / 1000;
+
+  await client.connect();
+  const db = client.getFirestore();
+  await updateDoc(doc(db, "sleep", childUid, "intervals", intervalId), patch);
 }

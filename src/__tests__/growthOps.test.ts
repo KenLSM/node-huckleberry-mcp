@@ -1,24 +1,30 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import type { HuckleberryClient } from "../client/HuckleberryClient.js";
 
-const { mockAddDoc, mockSetDoc, mockGetDocs, mockCollection } = vi.hoisted(() => ({
-  mockAddDoc: vi.fn(async () => ({ id: "growth-id" })),
-  mockSetDoc: vi.fn(async () => undefined),
-  mockGetDocs: vi.fn(),
-  mockCollection: vi.fn((_db: unknown, ...seg: string[]) => ({ path: seg.join("/") })),
-}));
+const { mockAddDoc, mockSetDoc, mockUpdateDoc, mockGetDocs, mockCollection, mockDoc } = vi.hoisted(
+  () => ({
+    mockAddDoc: vi.fn(async () => ({ id: "growth-id" })),
+    mockSetDoc: vi.fn(async () => undefined),
+    mockUpdateDoc: vi.fn(async () => undefined),
+    mockGetDocs: vi.fn(),
+    mockCollection: vi.fn((_db: unknown, ...seg: string[]) => ({ path: seg.join("/") })),
+    mockDoc: vi.fn((_db: unknown, ...seg: string[]) => ({ path: seg.join("/") })),
+  }),
+);
 
 vi.mock("firebase/firestore", () => ({
   collection: mockCollection,
+  doc: mockDoc,
   addDoc: mockAddDoc,
   setDoc: mockSetDoc,
+  updateDoc: mockUpdateDoc,
   getDocs: mockGetDocs,
   query: (col: unknown) => col,
   orderBy: () => ({}),
   limit: () => ({}),
 }));
 
-import { logGrowth, getLatestGrowth } from "../client/growthOps.js";
+import { logGrowth, getLatestGrowth, getGrowthHistory, editGrowth } from "../client/growthOps.js";
 
 const OFFSET = -480;
 const client = {
@@ -74,10 +80,11 @@ describe("growthOps", () => {
     await expect(logGrowth(client, "cid", {})).rejects.toThrow("at least one");
   });
 
-  it("getLatestGrowth parses the newest entry", async () => {
+  it("getLatestGrowth parses the newest entry and includes the doc id", async () => {
     mockGetDocs.mockResolvedValue({
       docs: [
         {
+          id: "growth-3",
           data: () => ({
             mode: "growth",
             start: 1,
@@ -90,6 +97,44 @@ describe("growthOps", () => {
       ],
     });
     const latest = await getLatestGrowth(client, "cid");
-    expect(latest).toMatchObject({ mode: "growth", weight: 3.1, weightUnits: "kg" });
+    expect(latest).toMatchObject({
+      id: "growth-3",
+      mode: "growth",
+      weight: 3.1,
+      weightUnits: "kg",
+    });
+  });
+
+  it("getGrowthHistory filters to growth and includes the doc id", async () => {
+    mockGetDocs.mockResolvedValue({
+      docs: [
+        { id: "growth-3", data: () => ({ mode: "growth", start: 2, weight: 4 }) },
+        { id: "other-1", data: () => ({ mode: "temperature", start: 1 }) },
+      ],
+    });
+    const items = await getGrowthHistory(client, "cid", { limit: 5 });
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({ id: "growth-3", mode: "growth", weight: 4 });
+  });
+});
+
+describe("editGrowth", () => {
+  it("updates measurements with unit fields + bumps lastUpdated", async () => {
+    await editGrowth(client, "cid", "growth-3", { weight: 4.2, notes: "recheck" });
+    const [ref, patch] = mockUpdateDoc.mock.calls[0] as [{ path: string }, Record<string, unknown>];
+    expect(ref.path).toBe("health/cid/data/growth-3");
+    expect(patch).toMatchObject({ weight: 4.2, weightUnits: "kg", notes: "recheck" });
+    expect(typeof patch.lastUpdated).toBe("number");
+    expect(patch.height).toBeUndefined();
+  });
+
+  it("applies imperial units to provided measurements", async () => {
+    await editGrowth(client, "cid", "growth-3", { weight: 9, units: "imperial" });
+    const patch = mockUpdateDoc.mock.calls[0][1] as Record<string, unknown>;
+    expect(patch).toMatchObject({ weight: 9, weightUnits: "lbs.oz" });
+  });
+
+  it("throws when no fields are provided", async () => {
+    await expect(editGrowth(client, "cid", "growth-3", {})).rejects.toThrow("at least one");
   });
 });

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { registerTool } from "../server/server.js";
 import { getClient } from "../server/auth.js";
-import { logDiaper, logPotty, getDiaperHistory } from "../client/index.js";
+import { logDiaper, logPotty, getDiaperHistory, editDiaper } from "../client/index.js";
 
 // T2.6: Diaper & Potty Tools (3 tools)
 
@@ -87,6 +87,38 @@ registerTool(
           text: JSON.stringify(items, null, 2),
         },
       ],
+    };
+  },
+);
+
+// edit_diaper — update fields on an existing diaper/potty entry (id from get_diaper_history)
+registerTool(
+  "edit_diaper",
+  "Edit an existing diaper or potty entry. Get the interval_id from get_diaper_history first.",
+  z.object({
+    child_uid: z.string().min(1, "child_uid is required"),
+    interval_id: z.string().min(1, "interval_id is required (from get_diaper_history)"),
+    start: z.number().min(0).optional(),
+    mode: z.enum(["pee", "poo", "both", "dry"]).optional(),
+    color: z.string().optional(),
+    consistency: z.string().optional(),
+    pee_amount: z.enum(["little", "medium", "big"]).optional(),
+    poo_amount: z.enum(["little", "medium", "big"]).optional(),
+    notes: z.string().optional(),
+  }),
+  async (input) => {
+    const client = await getClient();
+    await editDiaper(client, input.child_uid, input.interval_id, {
+      start: input.start,
+      mode: input.mode,
+      color: input.color,
+      consistency: input.consistency,
+      peeAmount: input.pee_amount,
+      pooAmount: input.poo_amount,
+      notes: input.notes,
+    });
+    return {
+      content: [{ type: "text", text: JSON.stringify({ edited: input.interval_id }, null, 2) }],
     };
   },
 );

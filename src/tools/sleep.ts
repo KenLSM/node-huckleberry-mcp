@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { registerTool } from "../server/server.js";
 import { getClient } from "../server/auth.js";
-import { logSleep, getSleepHistory } from "../client/index.js";
+import { logSleep, getSleepHistory, editSleep } from "../client/index.js";
 
 // T2.4: Sleep Tools (2 tools)
 
@@ -55,6 +55,30 @@ registerTool(
           text: JSON.stringify(result, null, 2),
         },
       ],
+    };
+  },
+);
+
+// edit_sleep — update fields on an existing sleep entry (id from get_sleep_history)
+registerTool(
+  "edit_sleep",
+  "Edit an existing sleep entry. Get the interval_id from get_sleep_history first.",
+  z.object({
+    child_uid: z.string().min(1, "child_uid is required"),
+    interval_id: z.string().min(1, "interval_id is required (from get_sleep_history)"),
+    start: z.number().min(0).optional(),
+    duration: z.number().min(0).optional(),
+    notes: z.string().optional(),
+  }),
+  async (input) => {
+    const client = await getClient();
+    await editSleep(client, input.child_uid, input.interval_id, {
+      start: input.start,
+      duration: input.duration,
+      notes: input.notes,
+    });
+    return {
+      content: [{ type: "text", text: JSON.stringify({ edited: input.interval_id }, null, 2) }],
     };
   },
 );

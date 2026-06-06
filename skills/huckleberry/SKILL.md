@@ -55,14 +55,19 @@ Use the history tools for "how did baby sleep?", "how many feeds today?", etc.:
 `list_pump_intervals`, `get_latest_growth`, `get_growth_history`. Each takes
 `child_uid` and an optional `limit`, newest first.
 
-## 6. Notes are supported everywhere
+## 6. Notes, and editing past entries
 
 Every `log_*` tool takes an optional `notes` string (free text) — use it for any
 qualitative detail the user mentions ("spit up after the bottle", "woke up
 crying", "first solid food"). The note is saved on the entry and comes back in
-the matching history/`get_*` read. To change a note on an existing **feed**
-entry, use `edit_feed` with `interval_id` (from `get_feed_history`) and `notes`.
-Other trackers don't have an edit tool yet — re-log if needed.
+the matching history/`get_*` read.
+
+To **change** an existing entry, every tracker now has an `edit_*` tool:
+`edit_sleep`, `edit_feed` (nursing/bottle/solids), `edit_pump`, `edit_diaper`
+(diaper + potty), `edit_growth`. The flow is always: read first to get the
+entry's `id` (every history/`get_*` result includes it), then call the `edit_*`
+tool with that id (`interval_id` for sleep/feed/pump/diaper, `entry_id` for
+growth) and only the fields you want to change. Editing never requires re-logging.
 
 ## 7. Confirm before writing
 
