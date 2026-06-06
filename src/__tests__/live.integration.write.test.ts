@@ -91,14 +91,15 @@ async function roundTrip(
 
 describe.skipIf(!enabled)("live write round-trip (log_* + delete)", () => {
   it("log_sleep writes, reads back, and deletes", { timeout: 30000 }, async () => {
-    const start = uniqueStart();
+    // logSleep stores the sleep START (startDate), not the end — match on that.
+    const end = uniqueStart();
+    const sleepStart = end - 3600;
     await roundTrip(
-      (client, cid) =>
-        logSleep(client, cid, new Date((start - 3600) * 1000), new Date(start * 1000)),
+      (client, cid) => logSleep(client, cid, new Date(sleepStart * 1000), new Date(end * 1000)),
       async (client, cid) =>
         (await getSleepHistory(client, cid, { limit: 50 })).map((i) => i.start),
       (cid, id) => ["sleep", cid, "intervals", id],
-      start,
+      sleepStart,
     );
   });
 
