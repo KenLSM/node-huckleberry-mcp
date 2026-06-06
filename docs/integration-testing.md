@@ -80,3 +80,11 @@ Because it mutates the account it is **double-gated**: it needs credentials
 HUCKLEBERRY_EMAIL=… HUCKLEBERRY_PASSWORD=… HUCKLEBERRY_ALLOW_WRITES=1 \
   npm run test:integration
 ```
+
+### Running it via GitHub Actions instead
+
+The **Live Integration** workflow (`.github/workflows/live-integration.yml`)
+runs the same `test:integration` job with the repo secrets. By default it is
+read-only; tick the **allow_writes** input when dispatching it to also run this
+write round-trip (it sets `HUCKLEBERRY_ALLOW_WRITES=1` for that run). Point the
+secrets at a test account before enabling writes.
