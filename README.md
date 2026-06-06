@@ -84,7 +84,7 @@ After updating the config, restart Claude Desktop. The Huckleberry tools will ap
 
 ## Tools
 
-The server exposes **19 tools** across 6 categories. (Active-session sleep/feed
+The server exposes **20 tools** across 6 categories. (Active-session sleep/feed
 timers — `start_sleep`, `pause_feeding`, etc. — are not implemented; use the
 explicit `log_*` tools to record completed events.)
 
@@ -97,37 +97,38 @@ explicit `log_*` tools to record completed events.)
 
 ### Sleep (2)
 
-| Tool                | Input                                 | Purpose                             |
-| ------------------- | ------------------------------------- | ----------------------------------- |
-| `log_sleep`         | `child_uid`, `start`, `end` (epoch s) | Log a completed sleep session       |
-| `get_sleep_history` | `child_uid`, `limit?`                 | Recent sleep sessions, newest first |
+| Tool                | Input                                           | Purpose                             |
+| ------------------- | ----------------------------------------------- | ----------------------------------- |
+| `log_sleep`         | `child_uid`, `start`, `end` (epoch s), `notes?` | Log a completed sleep session       |
+| `get_sleep_history` | `child_uid`, `limit?`                           | Recent sleep sessions, newest first |
 
-### Feeding (6)
+### Feeding (7)
 
-| Tool                  | Input                                                                                      | Purpose                    |
-| --------------------- | ------------------------------------------------------------------------------------------ | -------------------------- |
-| `log_nursing`         | `child_uid`, `start`, `left_duration?`, `right_duration?`, `last_side?`                    | Log a nursing session      |
-| `log_bottle`          | `child_uid`, `start`, `amount`, `bottle_type`, `units`                                     | Log a bottle feeding       |
-| `log_solids`          | `child_uid`, `start`                                                                       | Log a solids feeding       |
-| `log_pump`            | `child_uid`, `start`, `left_amount`/`right_amount` or `total_amount`, `units`, `duration?` | Log a pumping session      |
-| `list_pump_intervals` | `child_uid`, `limit?`                                                                      | Recent pump sessions       |
-| `get_feed_history`    | `child_uid`, `limit?`                                                                      | Recent feeds, newest first |
+| Tool                  | Input                                                                                                                            | Purpose                                 |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| `log_nursing`         | `child_uid`, `start`, `left_duration?`, `right_duration?`, `last_side?`, `notes?`                                                | Log a nursing session                   |
+| `log_bottle`          | `child_uid`, `start`, `amount`, `bottle_type`, `units`, `notes?`                                                                 | Log a bottle feeding                    |
+| `log_solids`          | `child_uid`, `start`, `notes?`                                                                                                   | Log a solids feeding                    |
+| `log_pump`            | `child_uid`, `start`, `left_amount`/`right_amount` or `total_amount`, `units`, `duration?`, `notes?`                             | Log a pumping session                   |
+| `list_pump_intervals` | `child_uid`, `limit?`                                                                                                            | Recent pump sessions                    |
+| `get_feed_history`    | `child_uid`, `limit?`                                                                                                            | Recent feeds (incl. `id`), newest first |
+| `edit_feed`           | `child_uid`, `interval_id`, + any of `start`/`amount`/`bottle_type`/`units`/`left_duration`/`right_duration`/`last_side`/`notes` | Edit an existing feed entry             |
 
 ### Diaper (3)
 
-| Tool                 | Input                                                                                                   | Purpose                              |
-| -------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------ |
-| `log_diaper`         | `child_uid`, `mode` (pee/poo/both/dry), `start`, `color?`, `consistency?`, `pee_amount?`, `poo_amount?` | Log a diaper change                  |
-| `log_potty`          | `child_uid`, `mode` (pee/poo), `start`                                                                  | Log potty training activity          |
-| `get_diaper_history` | `child_uid`, `limit?`                                                                                   | Diaper + potty history, newest first |
+| Tool                 | Input                                                                                                             | Purpose                              |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| `log_diaper`         | `child_uid`, `mode` (pee/poo/both/dry), `start`, `color?`, `consistency?`, `pee_amount?`, `poo_amount?`, `notes?` | Log a diaper change                  |
+| `log_potty`          | `child_uid`, `mode` (pee/poo), `start`, `notes?`                                                                  | Log potty training activity          |
+| `get_diaper_history` | `child_uid`, `limit?`                                                                                             | Diaper + potty history, newest first |
 
 ### Growth (3)
 
-| Tool                 | Input                                                                            | Purpose                        |
-| -------------------- | -------------------------------------------------------------------------------- | ------------------------------ |
-| `log_growth`         | `child_uid`, `weight?`, `height?`, `head?`, `units?` (metric/imperial), `start?` | Log a growth measurement       |
-| `get_latest_growth`  | `child_uid`                                                                      | Most recent growth measurement |
-| `get_growth_history` | `child_uid`, `limit?`                                                            | Growth history, newest first   |
+| Tool                 | Input                                                                                      | Purpose                        |
+| -------------------- | ------------------------------------------------------------------------------------------ | ------------------------------ |
+| `log_growth`         | `child_uid`, `weight?`, `height?`, `head?`, `units?` (metric/imperial), `start?`, `notes?` | Log a growth measurement       |
+| `get_latest_growth`  | `child_uid`                                                                                | Most recent growth measurement |
+| `get_growth_history` | `child_uid`, `limit?`                                                                      | Growth history, newest first   |
 
 ### Solids — custom foods (3)
 
@@ -139,6 +140,10 @@ explicit `log_*` tools to record completed events.)
 
 > All `start`/`end` inputs are **epoch seconds**. Times are stored with a
 > timezone `offset` derived from `HUCKLEBERRY_TIMEZONE`.
+>
+> Every `log_*` tool accepts an optional free-text `notes` field, which is stored
+> on the entry and returned by the matching history/`get_*` tool. `edit_feed`
+> can update `notes` on an existing feed entry.
 
 ### Prompts
 
@@ -165,7 +170,7 @@ npm run format           # Format with oxfmt
 npm run format:check     # Check formatting without changes
 npm test                 # Run unit tests (Vitest)
 npm run test:watch       # Watch mode for tests
-npm run test:integration # Live read-back tests (needs HUCKLEBERRY_* creds; skipped otherwise)
+npm run test:integration # Live tests (needs HUCKLEBERRY_* creds; skipped otherwise). Read-only by default; set HUCKLEBERRY_ALLOW_WRITES=1 to also run the log_*→delete write round-trip (test account only)
 npm run inspect:schema   # Dump real Firestore shapes (needs creds) — see docs/integration-testing.md
 npm run smoke            # Build + run the MCP server smoke test
 npm run dev              # Run in dev mode (tsx)
@@ -214,12 +219,17 @@ Watch mode:
 npm run test:watch
 ```
 
-**Live integration** (gated, read-only) validates the Zod models against a real
-account and is skipped without credentials — see
-[docs/integration-testing.md](./docs/integration-testing.md):
+**Live integration** (gated) validates against a real account and is skipped
+without credentials. It is read-only by default; an opt-in `log_*`→delete write
+round-trip runs only with `HUCKLEBERRY_ALLOW_WRITES=1` (use a test account) —
+see [docs/integration-testing.md](./docs/integration-testing.md):
 
 ```bash
+# read-only schema validation
 HUCKLEBERRY_EMAIL=… HUCKLEBERRY_PASSWORD=… npm run test:integration
+
+# also exercise log_*→delete writes (test account only)
+HUCKLEBERRY_EMAIL=… HUCKLEBERRY_PASSWORD=… HUCKLEBERRY_ALLOW_WRITES=1 npm run test:integration
 ```
 
 ## Licensing & Attribution

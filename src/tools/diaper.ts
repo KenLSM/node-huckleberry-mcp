@@ -17,6 +17,7 @@ registerTool(
     consistency: z.string().optional(),
     pee_amount: z.enum(["little", "medium", "big"]).optional(),
     poo_amount: z.enum(["little", "medium", "big"]).optional(),
+    notes: z.string().optional(),
   }),
   async (input) => {
     const client = await getClient();
@@ -27,6 +28,7 @@ registerTool(
       consistency: input.consistency,
       peeAmount: input.pee_amount,
       pooAmount: input.poo_amount,
+      notes: input.notes,
     });
     return {
       content: [
@@ -47,12 +49,14 @@ registerTool(
     child_uid: z.string().min(1, "child_uid is required"),
     mode: z.enum(["pee", "poo"]),
     start: z.number().min(0, "start is required (epoch seconds)"),
+    notes: z.string().optional(),
   }),
   async (input) => {
     const client = await getClient();
     const id = await logPotty(client, input.child_uid, {
       mode: input.mode,
       start: input.start,
+      notes: input.notes,
     });
     return {
       content: [

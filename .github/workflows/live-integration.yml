@@ -1,8 +1,10 @@
 # Manually-triggered live integration suite (T3.2).
 #
-# Runs the credential-gated read-back tests against the REAL account using the
-# repo secrets, so the schema port can be validated end-to-end against live data.
-# Read-only (no writes to the account).
+# Runs the credential-gated tests against the REAL account using the repo secrets.
+# Read-only by default (schema read-back). Tick "allow_writes" when dispatching to
+# ALSO run the log_*→read-back→delete write round-trip, which mutates the account
+# (creating then deleting a real entry per tracker) — use a TEST account for the
+# secrets in that case.
 #
 # Required repository secrets: HUCKLEBERRY_EMAIL, HUCKLEBERRY_PASSWORD
 # Optional: HUCKLEBERRY_TIMEZONE (defaults to UTC).
@@ -13,6 +15,11 @@ name: Live Integration
 
 on:
   workflow_dispatch:
+    inputs:
+      allow_writes:
+        description: "Also run the log_*→delete write round-trip (mutates the account — use a test account)"
+        type: boolean
+        default: false
 
 jobs:
   live:
@@ -33,4 +40,6 @@ jobs:
           HUCKLEBERRY_EMAIL: ${{ secrets.HUCKLEBERRY_EMAIL }}
           HUCKLEBERRY_PASSWORD: ${{ secrets.HUCKLEBERRY_PASSWORD }}
           HUCKLEBERRY_TIMEZONE: ${{ secrets.HUCKLEBERRY_TIMEZONE }}
+          # Opt the write round-trip in only when the dispatcher ticks the box.
+          HUCKLEBERRY_ALLOW_WRITES: ${{ inputs.allow_writes && '1' || '0' }}
         run: npm run test:integration

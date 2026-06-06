@@ -16,6 +16,7 @@ export const DiaperInterval = z
     consistency: z.string().optional(),
     isPotty: z.boolean().optional(),
     howItHappened: z.string().optional(),
+    notes: z.string().optional(),
     lastUpdated: z.number().optional(),
   })
   .passthrough();

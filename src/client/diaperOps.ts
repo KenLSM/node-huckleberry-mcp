@@ -12,6 +12,7 @@ export interface LogDiaperOptions {
   consistency?: string;
   peeAmount?: "little" | "medium" | "big";
   pooAmount?: "little" | "medium" | "big";
+  notes?: string;
   time?: Date;
 }
 
@@ -43,6 +44,7 @@ export async function logDiaper(
       ...(quantity !== undefined && { quantity }),
       ...(options.color !== undefined && { color: options.color }),
       ...(options.consistency !== undefined && { consistency: options.consistency }),
+      ...(options.notes !== undefined && { notes: options.notes }),
       lastUpdated,
     },
     prefs: {
@@ -58,6 +60,7 @@ export async function logDiaper(
 export interface LogPottyOptions {
   mode: "pee" | "poo";
   start: number;
+  notes?: string;
   time?: Date;
 }
 
@@ -80,6 +83,7 @@ export async function logPotty(
       start: options.start,
       offset,
       isPotty: true,
+      ...(options.notes !== undefined && { notes: options.notes }),
       lastUpdated,
     },
     prefs: {

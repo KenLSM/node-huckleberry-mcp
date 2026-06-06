@@ -52,6 +52,15 @@ describe("diaperOps", () => {
       quantity: 50, // medium → 50 (scalar, not a {pee,poo} map)
     });
     expect(prefs().lastDiaper).toEqual({ start: 100, offset: OFFSET, mode: "poo" });
+    expect(interval().notes).toBeUndefined();
+  });
+
+  it("logDiaper and logPotty write notes when provided", async () => {
+    await logDiaper(client, "cid", { mode: "pee", start: 1, notes: "leaked" });
+    expect(interval().notes).toBe("leaked");
+    vi.clearAllMocks();
+    await logPotty(client, "cid", { mode: "pee", start: 2, notes: "first time!" });
+    expect(interval().notes).toBe("first time!");
   });
 
   it("logPotty writes to the diaper collection with isPotty + prefs.lastPotty", async () => {

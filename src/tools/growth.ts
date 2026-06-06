@@ -20,6 +20,7 @@ registerTool(
     height: z.number().optional(),
     head: z.number().optional(),
     units: z.enum(["metric", "imperial"]).optional(),
+    notes: z.string().optional(),
   }),
   async (input) => {
     const client = await getClient();
@@ -29,6 +30,7 @@ registerTool(
       height: input.height,
       head: input.head,
       units: input.units,
+      notes: input.notes,
     });
     return asResult({ growth_id: id });
   },

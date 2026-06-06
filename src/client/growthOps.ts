@@ -11,6 +11,7 @@ export interface LogGrowthOptions {
   height?: number;
   head?: number;
   units?: GrowthUnits;
+  notes?: string;
 }
 
 const METRIC = { weight: "kg", height: "cm", head: "hcm" } as const;
@@ -42,6 +43,7 @@ export async function logGrowth(
     ...(options.weight !== undefined && { weight: options.weight, weightUnits: u.weight }),
     ...(options.height !== undefined && { height: options.height, heightUnits: u.height }),
     ...(options.head !== undefined && { head: options.head, headUnits: u.head }),
+    ...(options.notes !== undefined && { notes: options.notes }),
   };
 
   await client.connect();

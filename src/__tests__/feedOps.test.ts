@@ -3,26 +3,38 @@ import type { HuckleberryClient } from "../client/HuckleberryClient.js";
 
 // Mock firebase/firestore so we can assert the exact document bodies written.
 // collection()/doc() return the path so we can verify the right collection.
-const { mockAddDoc, mockSetDoc, mockGetDocs, mockCollection, mockDoc } = vi.hoisted(() => ({
-  mockAddDoc: vi.fn(async () => ({ id: "new-id" })),
-  mockSetDoc: vi.fn(async () => undefined),
-  mockGetDocs: vi.fn(),
-  mockCollection: vi.fn((_db: unknown, ...seg: string[]) => ({ path: seg.join("/") })),
-  mockDoc: vi.fn((_db: unknown, ...seg: string[]) => ({ path: seg.join("/") })),
-}));
+const { mockAddDoc, mockSetDoc, mockUpdateDoc, mockGetDocs, mockCollection, mockDoc } = vi.hoisted(
+  () => ({
+    mockAddDoc: vi.fn(async () => ({ id: "new-id" })),
+    mockSetDoc: vi.fn(async () => undefined),
+    mockUpdateDoc: vi.fn(async () => undefined),
+    mockGetDocs: vi.fn(),
+    mockCollection: vi.fn((_db: unknown, ...seg: string[]) => ({ path: seg.join("/") })),
+    mockDoc: vi.fn((_db: unknown, ...seg: string[]) => ({ path: seg.join("/") })),
+  }),
+);
 
 vi.mock("firebase/firestore", () => ({
   collection: mockCollection,
   doc: mockDoc,
   addDoc: mockAddDoc,
   setDoc: mockSetDoc,
+  updateDoc: mockUpdateDoc,
   getDocs: mockGetDocs,
   query: (col: unknown) => col,
   orderBy: () => ({}),
   limit: () => ({}),
 }));
 
-import { logNursing, logBottle, logSolids, logPump, listPumpIntervals } from "../client/feedOps.js";
+import {
+  logNursing,
+  logBottle,
+  logSolids,
+  logPump,
+  listPumpIntervals,
+  getFeedHistory,
+  editFeed,
+} from "../client/feedOps.js";
 
 const OFFSET = -480;
 const client = {
@@ -66,12 +78,13 @@ describe("feedOps writes", () => {
     expect(prefs.lastSide).toEqual({ lastSide: "left", start: 1000 });
   });
 
-  it("logBottle writes feed/intervals + bottle prefs", async () => {
+  it("logBottle writes feed/intervals + bottle prefs (with optional notes)", async () => {
     await logBottle(client, "cid", {
       start: 5,
       amount: 177,
       bottleType: "Breast Milk",
       units: "ml",
+      notes: "took it well",
     });
     expect(lastIntervalPath()).toBe("feed/cid/intervals");
     expect(lastInterval()).toMatchObject({
@@ -79,6 +92,7 @@ describe("feedOps writes", () => {
       amount: 177,
       bottleType: "Breast Milk",
       units: "ml",
+      notes: "took it well",
     });
     expect(lastPrefs()).toMatchObject({
       bottleAmount: 177,
@@ -87,10 +101,33 @@ describe("feedOps writes", () => {
     });
   });
 
+  it("logBottle omits notes when not provided", async () => {
+    await logBottle(client, "cid", { start: 5, amount: 90, bottleType: "Formula", units: "ml" });
+    expect(lastInterval().notes).toBeUndefined();
+  });
+
   it("logSolids writes feed/intervals with mode solids", async () => {
     await logSolids(client, "cid", { start: 9 });
     expect(lastIntervalPath()).toBe("feed/cid/intervals");
     expect(lastInterval()).toMatchObject({ mode: "solids", start: 9, offset: OFFSET });
+    expect(lastInterval().notes).toBeUndefined();
+  });
+
+  it("logNursing, logSolids and logPump write notes when provided", async () => {
+    await logNursing(client, "cid", { start: 1, notes: "sleepy feed" });
+    expect(lastInterval().notes).toBe("sleepy feed");
+    vi.clearAllMocks();
+    await logSolids(client, "cid", { start: 2, notes: "avocado" });
+    expect(lastInterval().notes).toBe("avocado");
+    vi.clearAllMocks();
+    await logPump(client, "cid", {
+      start: 3,
+      leftAmount: 30,
+      rightAmount: 30,
+      units: "ml",
+      notes: "morning pump",
+    });
+    expect(lastInterval().notes).toBe("morning pump");
   });
 
   it("logPump writes to the pump collection and splits totalAmount", async () => {
@@ -135,5 +172,30 @@ describe("feedOps reads", () => {
     const res = await listPumpIntervals(client, "cid");
     expect(res).toHaveLength(1);
     expect(res[0]).toMatchObject({ entryMode: "total", leftAmount: 6, units: "oz" });
+  });
+
+  it("getFeedHistory includes the doc id (needed for editFeed)", async () => {
+    mockGetDocs.mockResolvedValue({
+      docs: [
+        { id: "feed-123", data: () => ({ mode: "bottle", start: 1, amount: 90, units: "ml" }) },
+      ],
+    });
+    const res = await getFeedHistory(client, "cid");
+    expect(res[0]).toMatchObject({ id: "feed-123", mode: "bottle", amount: 90 });
+  });
+});
+
+describe("editFeed", () => {
+  it("updates only provided fields on feed/{cid}/intervals/{id} + bumps lastUpdated", async () => {
+    await editFeed(client, "cid", "feed-123", { amount: 150, units: "ml" });
+    const [ref, patch] = mockUpdateDoc.mock.calls[0] as [{ path: string }, Record<string, unknown>];
+    expect(ref.path).toBe("feed/cid/intervals/feed-123");
+    expect(patch).toMatchObject({ amount: 150, units: "ml" });
+    expect(typeof patch.lastUpdated).toBe("number");
+    expect(patch.bottleType).toBeUndefined();
+  });
+
+  it("throws when no fields are provided", async () => {
+    await expect(editFeed(client, "cid", "feed-123", {})).rejects.toThrow("at least one");
   });
 });

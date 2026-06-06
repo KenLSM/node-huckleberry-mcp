@@ -16,6 +16,7 @@ export const GrowthEntry = z
     heightUnits: z.string().optional(),
     head: z.number().optional(),
     headUnits: z.string().optional(),
+    notes: z.string().optional(),
   })
   .passthrough();
 
