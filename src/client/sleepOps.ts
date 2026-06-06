@@ -6,6 +6,8 @@ import { writeIntervalWithPrefs } from "./prefs.js";
 export interface LogSleepOptions {
   /** Override time (defaults to now). */
   time?: Date;
+  /** Free-text note attached to the entry. */
+  notes?: string;
 }
 
 /**
@@ -34,6 +36,7 @@ export async function logSleep(
       start,
       duration,
       offset,
+      ...(options.notes !== undefined && { notes: options.notes }),
       lastUpdated,
     },
     prefs: {

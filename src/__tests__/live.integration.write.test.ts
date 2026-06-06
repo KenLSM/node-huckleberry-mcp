@@ -18,10 +18,11 @@ import {
 } from "../client/index.js";
 
 /**
- * T3.2 — Live WRITE round-trip suite. For each tracker it logs a real entry,
- * reads it back to prove the write landed in Firestore, then deletes it to
- * exercise the delete path. Unlike the read-only `live.integration.test.ts`,
- * this MUTATES the account, so it is double-gated:
+ * T3.2 — Live WRITE round-trip suite. For each tracker it logs a real entry
+ * (with a unique `notes`), reads it back to prove the write landed in Firestore
+ * AND that `notes` round-trips, then deletes it to exercise the delete path.
+ * Unlike the read-only `live.integration.test.ts`, this MUTATES the account, so
+ * it is double-gated:
  *
  *   - HUCKLEBERRY_EMAIL + HUCKLEBERRY_PASSWORD must be set (as for all live tests), and
  *   - HUCKLEBERRY_ALLOW_WRITES=1 must be set as an explicit opt-in.
@@ -52,16 +53,20 @@ function makeClient(): HuckleberryClient {
   return new HuckleberryClient({ credentials: { email: email!, password: password! } });
 }
 
+/** An entry as surfaced by the read/history ops, narrowed to what we assert on. */
+type ReadEntry = { start: number; notes?: string };
+
 /**
- * write → read-back (assert present) → delete → read-back (assert gone).
- * `readStarts` returns the `start` values currently in the tracker; the entry is
- * matched by its unique `start`. `deleteSegments` builds the doc path to delete.
+ * write → read-back (assert present + notes) → delete → read-back (assert gone).
+ * The entry is matched by its unique `start`. `readEntries` returns the current
+ * tracker entries; `deleteSegments` builds the doc path to delete.
  */
 async function roundTrip(
   write: (client: HuckleberryClient, cid: string) => Promise<string>,
-  readStarts: (client: HuckleberryClient, cid: string) => Promise<number[]>,
+  readEntries: (client: HuckleberryClient, cid: string) => Promise<ReadEntry[]>,
   deleteSegments: (cid: string, id: string) => [string, ...string[]],
   expectedStart: number,
+  expectedNotes: string,
 ): Promise<void> {
   const client = makeClient();
   try {
@@ -69,15 +74,17 @@ async function roundTrip(
     const id = await write(client, cid);
     let cleaned = false;
     try {
-      const before = await readStarts(client, cid);
-      expect(before).toContain(expectedStart);
+      const before = await readEntries(client, cid);
+      const entry = before.find((e) => e.start === expectedStart);
+      expect(entry, `entry with start=${expectedStart} should have been written`).toBeDefined();
+      expect(entry?.notes).toBe(expectedNotes);
 
       const [path, ...segments] = deleteSegments(cid, id);
       await client.deleteDoc(path, ...segments);
       cleaned = true;
 
-      const after = await readStarts(client, cid);
-      expect(after).not.toContain(expectedStart);
+      const after = await readEntries(client, cid);
+      expect(after.find((e) => e.start === expectedStart)).toBeUndefined();
     } finally {
       if (!cleaned) {
         const [path, ...segments] = deleteSegments(cid, id);
@@ -90,59 +97,68 @@ async function roundTrip(
 }
 
 describe.skipIf(!enabled)("live write round-trip (log_* + delete)", () => {
-  it("log_sleep writes, reads back, and deletes", { timeout: 30000 }, async () => {
+  it("log_sleep writes (with notes), reads back, and deletes", { timeout: 30000 }, async () => {
     // logSleep stores the sleep START (startDate), not the end — match on that.
     const end = uniqueStart();
     const sleepStart = end - 3600;
+    const notes = "sleep round-trip note";
     await roundTrip(
-      (client, cid) => logSleep(client, cid, new Date(sleepStart * 1000), new Date(end * 1000)),
-      async (client, cid) =>
-        (await getSleepHistory(client, cid, { limit: 50 })).map((i) => i.start),
+      (client, cid) =>
+        logSleep(client, cid, new Date(sleepStart * 1000), new Date(end * 1000), { notes }),
+      async (client, cid) => getSleepHistory(client, cid, { limit: 50 }),
       (cid, id) => ["sleep", cid, "intervals", id],
       sleepStart,
+      notes,
     );
   });
 
-  it("log_nursing writes, reads back, and deletes", { timeout: 30000 }, async () => {
+  it("log_nursing writes (with notes), reads back, and deletes", { timeout: 30000 }, async () => {
     const start = uniqueStart();
+    const notes = "nursing round-trip note";
     await roundTrip(
       (client, cid) =>
-        logNursing(client, cid, { start, leftDuration: 300, rightDuration: 300, lastSide: "left" }),
-      async (client, cid) => (await getFeedHistory(client, cid, { limit: 50 })).map((i) => i.start),
-      (cid, id) => ["feed", cid, "intervals", id],
-      start,
-    );
-  });
-
-  it("log_bottle writes, reads back, and deletes", { timeout: 30000 }, async () => {
-    const start = uniqueStart();
-    await roundTrip(
-      (client, cid) =>
-        logBottle(client, cid, {
+        logNursing(client, cid, {
           start,
-          amount: 120,
-          bottleType: "Formula",
-          units: "ml",
-          notes: "live write round-trip test",
+          leftDuration: 300,
+          rightDuration: 300,
+          lastSide: "left",
+          notes,
         }),
-      async (client, cid) => (await getFeedHistory(client, cid, { limit: 50 })).map((i) => i.start),
+      async (client, cid) => getFeedHistory(client, cid, { limit: 50 }),
       (cid, id) => ["feed", cid, "intervals", id],
       start,
+      notes,
     );
   });
 
-  it("log_solids writes, reads back, and deletes", { timeout: 30000 }, async () => {
+  it("log_bottle writes (with notes), reads back, and deletes", { timeout: 30000 }, async () => {
     const start = uniqueStart();
+    const notes = "bottle round-trip note";
     await roundTrip(
-      (client, cid) => logSolids(client, cid, { start }),
-      async (client, cid) => (await getFeedHistory(client, cid, { limit: 50 })).map((i) => i.start),
+      (client, cid) =>
+        logBottle(client, cid, { start, amount: 120, bottleType: "Formula", units: "ml", notes }),
+      async (client, cid) => getFeedHistory(client, cid, { limit: 50 }),
       (cid, id) => ["feed", cid, "intervals", id],
       start,
+      notes,
     );
   });
 
-  it("log_pump writes, reads back, and deletes", { timeout: 30000 }, async () => {
+  it("log_solids writes (with notes), reads back, and deletes", { timeout: 30000 }, async () => {
     const start = uniqueStart();
+    const notes = "solids round-trip note";
+    await roundTrip(
+      (client, cid) => logSolids(client, cid, { start, notes }),
+      async (client, cid) => getFeedHistory(client, cid, { limit: 50 }),
+      (cid, id) => ["feed", cid, "intervals", id],
+      start,
+      notes,
+    );
+  });
+
+  it("log_pump writes (with notes), reads back, and deletes", { timeout: 30000 }, async () => {
+    const start = uniqueStart();
+    const notes = "pump round-trip note";
     await roundTrip(
       (client, cid) =>
         logPump(client, cid, {
@@ -151,16 +167,18 @@ describe.skipIf(!enabled)("live write round-trip (log_* + delete)", () => {
           rightAmount: 60,
           units: "ml",
           duration: 600,
+          notes,
         }),
-      async (client, cid) =>
-        (await listPumpIntervals(client, cid, { limit: 50 })).map((i) => i.start),
+      async (client, cid) => listPumpIntervals(client, cid, { limit: 50 }),
       (cid, id) => ["pump", cid, "intervals", id],
       start,
+      notes,
     );
   });
 
-  it("log_diaper writes, reads back, and deletes", { timeout: 30000 }, async () => {
+  it("log_diaper writes (with notes), reads back, and deletes", { timeout: 30000 }, async () => {
     const start = uniqueStart();
+    const notes = "diaper round-trip note";
     await roundTrip(
       (client, cid) =>
         logDiaper(client, cid, {
@@ -169,34 +187,42 @@ describe.skipIf(!enabled)("live write round-trip (log_* + delete)", () => {
           peeAmount: "little",
           pooAmount: "medium",
           color: "yellow",
+          notes,
         }),
-      async (client, cid) =>
-        (await getDiaperHistory(client, cid, { limit: 50 })).map((i) => i.start),
+      async (client, cid) => getDiaperHistory(client, cid, { limit: 50 }),
       (cid, id) => ["diaper", cid, "intervals", id],
       start,
+      notes,
     );
   });
 
-  it("log_potty writes, reads back, and deletes", { timeout: 30000 }, async () => {
+  it("log_potty writes (with notes), reads back, and deletes", { timeout: 30000 }, async () => {
     const start = uniqueStart();
+    const notes = "potty round-trip note";
     await roundTrip(
-      (client, cid) => logPotty(client, cid, { mode: "pee", start }),
-      async (client, cid) =>
-        (await getDiaperHistory(client, cid, { limit: 50 })).map((i) => i.start),
+      (client, cid) => logPotty(client, cid, { mode: "pee", start, notes }),
+      async (client, cid) => getDiaperHistory(client, cid, { limit: 50 }),
       (cid, id) => ["diaper", cid, "intervals", id],
       start,
+      notes,
     );
   });
 
-  it("log_growth writes, reads back, and deletes", { timeout: 30000 }, async () => {
+  it("log_growth writes (with notes), reads back, and deletes", { timeout: 30000 }, async () => {
     const start = uniqueStart();
+    const notes = "growth round-trip note";
     await roundTrip(
       (client, cid) =>
-        logGrowth(client, cid, { weight: 5.5, units: "metric", time: new Date(start * 1000) }),
-      async (client, cid) =>
-        (await getGrowthHistory(client, cid, { limit: 50 })).map((i) => i.start),
+        logGrowth(client, cid, {
+          weight: 5.5,
+          units: "metric",
+          time: new Date(start * 1000),
+          notes,
+        }),
+      async (client, cid) => getGrowthHistory(client, cid, { limit: 50 }),
       (cid, id) => ["health", cid, "data", id],
       start,
+      notes,
     );
   });
 });

@@ -61,6 +61,13 @@ describe("growthOps", () => {
     expect(body).toMatchObject({ weight: 7, weightUnits: "lbs.oz" });
     expect(body.height).toBeUndefined();
     expect(body.head).toBeUndefined();
+    expect(body.notes).toBeUndefined();
+  });
+
+  it("logGrowth writes notes when provided", async () => {
+    await logGrowth(client, "cid", { weight: 7, notes: "at the pediatrician" });
+    const body = mockAddDoc.mock.calls[0][1] as Record<string, unknown>;
+    expect(body.notes).toBe("at the pediatrician");
   });
 
   it("logGrowth throws when no measurement is given", async () => {

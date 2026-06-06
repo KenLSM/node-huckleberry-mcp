@@ -13,6 +13,7 @@ registerTool(
     child_uid: z.string().min(1, "child_uid is required"),
     start_time: z.number().min(0, "start_time is required (Unix timestamp in milliseconds)"),
     end_time: z.number().min(0, "end_time is required (Unix timestamp in milliseconds)"),
+    notes: z.string().optional(),
   }),
   async (input) => {
     const client = await getClient();
@@ -21,6 +22,7 @@ registerTool(
       input.child_uid,
       new Date(input.start_time),
       new Date(input.end_time),
+      { notes: input.notes },
     );
     return {
       content: [

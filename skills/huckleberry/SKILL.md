@@ -55,7 +55,16 @@ Use the history tools for "how did baby sleep?", "how many feeds today?", etc.:
 `list_pump_intervals`, `get_latest_growth`, `get_growth_history`. Each takes
 `child_uid` and an optional `limit`, newest first.
 
-## 6. Confirm before writing
+## 6. Notes are supported everywhere
+
+Every `log_*` tool takes an optional `notes` string (free text) — use it for any
+qualitative detail the user mentions ("spit up after the bottle", "woke up
+crying", "first solid food"). The note is saved on the entry and comes back in
+the matching history/`get_*` read. To change a note on an existing **feed**
+entry, use `edit_feed` with `interval_id` (from `get_feed_history`) and `notes`.
+Other trackers don't have an edit tool yet — re-log if needed.
+
+## 7. Confirm before writing
 
 Writes go to the user's **real** Huckleberry account. Before any `log_*` call,
 echo back the child, the resolved time, and the values, then make the call.

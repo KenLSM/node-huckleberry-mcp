@@ -39,9 +39,18 @@ describe("sleepOps", () => {
     expect(colRef.path).toBe("sleep/cid/intervals");
     expect(body).toMatchObject({ start: 1000, duration: 300, offset: OFFSET });
     expect(typeof body.lastUpdated).toBe("number");
+    expect(body.notes).toBeUndefined();
 
     const prefs = (mockSetDoc.mock.calls[0][1] as { prefs: { lastSleep: unknown } }).prefs;
     expect(prefs.lastSleep).toEqual({ start: 1000, offset: OFFSET, duration: 300 });
+  });
+
+  it("logSleep writes notes when provided", async () => {
+    await logSleep(client, "cid", new Date(1000 * 1000), new Date(1300 * 1000), {
+      notes: "fussy bedtime",
+    });
+    const body = mockAddDoc.mock.calls[0][1] as Record<string, unknown>;
+    expect(body.notes).toBe("fussy bedtime");
   });
 
   it("getSleepHistory reads sleep/intervals and parses entries", async () => {

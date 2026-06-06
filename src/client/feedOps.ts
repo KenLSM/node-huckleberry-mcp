@@ -15,6 +15,7 @@ export interface LogNursingOptions {
   leftDuration?: number;
   rightDuration?: number;
   lastSide?: "left" | "right";
+  notes?: string;
   time?: Date;
 }
 
@@ -39,6 +40,7 @@ export async function logNursing(
       ...(options.leftDuration !== undefined && { leftDuration: options.leftDuration }),
       ...(options.rightDuration !== undefined && { rightDuration: options.rightDuration }),
       ...(options.lastSide !== undefined && { lastSide: options.lastSide }),
+      ...(options.notes !== undefined && { notes: options.notes }),
       lastUpdated,
     },
     prefs: {
@@ -108,6 +110,7 @@ export async function logBottle(
 
 export interface LogSolidsOptions {
   start: number;
+  notes?: string;
   time?: Date;
 }
 
@@ -129,6 +132,7 @@ export async function logSolids(
       mode: "solids",
       start: options.start,
       offset,
+      ...(options.notes !== undefined && { notes: options.notes }),
       lastUpdated,
     },
     prefs: {
@@ -219,6 +223,7 @@ export interface LogPumpOptions {
   units: "ml" | "oz";
   duration?: number;
   totalAmount?: number;
+  notes?: string;
   time?: Date;
 }
 
@@ -258,6 +263,7 @@ export async function logPump(
       rightAmount,
       units: options.units,
       ...(options.duration !== undefined && { duration: options.duration }),
+      ...(options.notes !== undefined && { notes: options.notes }),
       lastUpdated,
     },
     prefs: {

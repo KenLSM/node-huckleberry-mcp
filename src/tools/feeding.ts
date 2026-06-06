@@ -23,6 +23,7 @@ registerTool(
     left_duration: z.number().optional(),
     right_duration: z.number().optional(),
     last_side: z.enum(["left", "right"]).optional(),
+    notes: z.string().optional(),
   }),
   async (input) => {
     const client = await getClient();
@@ -31,6 +32,7 @@ registerTool(
       leftDuration: input.left_duration,
       rightDuration: input.right_duration,
       lastSide: input.last_side,
+      notes: input.notes,
     });
     return {
       content: [
@@ -82,11 +84,13 @@ registerTool(
   z.object({
     child_uid: z.string().min(1, "child_uid is required"),
     start: z.number().min(0, "start is required (epoch seconds)"),
+    notes: z.string().optional(),
   }),
   async (input) => {
     const client = await getClient();
     const id = await logSolids(client, input.child_uid, {
       start: input.start,
+      notes: input.notes,
     });
     return {
       content: [
@@ -111,6 +115,7 @@ registerTool(
     units: z.enum(["ml", "oz"]),
     duration: z.number().optional(),
     total_amount: z.number().optional(),
+    notes: z.string().optional(),
   }),
   async (input) => {
     const client = await getClient();
@@ -121,6 +126,7 @@ registerTool(
       units: input.units,
       duration: input.duration,
       totalAmount: input.total_amount,
+      notes: input.notes,
     });
     return {
       content: [

@@ -9,6 +9,7 @@ export const SleepInterval = z
     duration: z.number().optional(),
     offset: z.number().optional(),
     lastUpdated: z.number().optional(),
+    notes: z.string().optional(),
     _id: z.string().optional(),
   })
   .passthrough();

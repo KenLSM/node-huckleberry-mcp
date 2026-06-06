@@ -97,38 +97,38 @@ explicit `log_*` tools to record completed events.)
 
 ### Sleep (2)
 
-| Tool                | Input                                 | Purpose                             |
-| ------------------- | ------------------------------------- | ----------------------------------- |
-| `log_sleep`         | `child_uid`, `start`, `end` (epoch s) | Log a completed sleep session       |
-| `get_sleep_history` | `child_uid`, `limit?`                 | Recent sleep sessions, newest first |
+| Tool                | Input                                           | Purpose                             |
+| ------------------- | ----------------------------------------------- | ----------------------------------- |
+| `log_sleep`         | `child_uid`, `start`, `end` (epoch s), `notes?` | Log a completed sleep session       |
+| `get_sleep_history` | `child_uid`, `limit?`                           | Recent sleep sessions, newest first |
 
 ### Feeding (7)
 
-| Tool                  | Input                                                                                                                    | Purpose                                 |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------ | --------------------------------------- |
-| `log_nursing`         | `child_uid`, `start`, `left_duration?`, `right_duration?`, `last_side?`                                                  | Log a nursing session                   |
-| `log_bottle`          | `child_uid`, `start`, `amount`, `bottle_type`, `units`, `notes?`                                                         | Log a bottle feeding                    |
-| `log_solids`          | `child_uid`, `start`                                                                                                     | Log a solids feeding                    |
-| `log_pump`            | `child_uid`, `start`, `left_amount`/`right_amount` or `total_amount`, `units`, `duration?`                               | Log a pumping session                   |
-| `list_pump_intervals` | `child_uid`, `limit?`                                                                                                    | Recent pump sessions                    |
-| `get_feed_history`    | `child_uid`, `limit?`                                                                                                    | Recent feeds (incl. `id`), newest first |
-| `edit_feed`           | `child_uid`, `interval_id`, + any of `start`/`amount`/`bottle_type`/`units`/`left_duration`/`right_duration`/`last_side` | Edit an existing feed entry             |
+| Tool                  | Input                                                                                                                            | Purpose                                 |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| `log_nursing`         | `child_uid`, `start`, `left_duration?`, `right_duration?`, `last_side?`, `notes?`                                                | Log a nursing session                   |
+| `log_bottle`          | `child_uid`, `start`, `amount`, `bottle_type`, `units`, `notes?`                                                                 | Log a bottle feeding                    |
+| `log_solids`          | `child_uid`, `start`, `notes?`                                                                                                   | Log a solids feeding                    |
+| `log_pump`            | `child_uid`, `start`, `left_amount`/`right_amount` or `total_amount`, `units`, `duration?`, `notes?`                             | Log a pumping session                   |
+| `list_pump_intervals` | `child_uid`, `limit?`                                                                                                            | Recent pump sessions                    |
+| `get_feed_history`    | `child_uid`, `limit?`                                                                                                            | Recent feeds (incl. `id`), newest first |
+| `edit_feed`           | `child_uid`, `interval_id`, + any of `start`/`amount`/`bottle_type`/`units`/`left_duration`/`right_duration`/`last_side`/`notes` | Edit an existing feed entry             |
 
 ### Diaper (3)
 
-| Tool                 | Input                                                                                                   | Purpose                              |
-| -------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------ |
-| `log_diaper`         | `child_uid`, `mode` (pee/poo/both/dry), `start`, `color?`, `consistency?`, `pee_amount?`, `poo_amount?` | Log a diaper change                  |
-| `log_potty`          | `child_uid`, `mode` (pee/poo), `start`                                                                  | Log potty training activity          |
-| `get_diaper_history` | `child_uid`, `limit?`                                                                                   | Diaper + potty history, newest first |
+| Tool                 | Input                                                                                                             | Purpose                              |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| `log_diaper`         | `child_uid`, `mode` (pee/poo/both/dry), `start`, `color?`, `consistency?`, `pee_amount?`, `poo_amount?`, `notes?` | Log a diaper change                  |
+| `log_potty`          | `child_uid`, `mode` (pee/poo), `start`, `notes?`                                                                  | Log potty training activity          |
+| `get_diaper_history` | `child_uid`, `limit?`                                                                                             | Diaper + potty history, newest first |
 
 ### Growth (3)
 
-| Tool                 | Input                                                                            | Purpose                        |
-| -------------------- | -------------------------------------------------------------------------------- | ------------------------------ |
-| `log_growth`         | `child_uid`, `weight?`, `height?`, `head?`, `units?` (metric/imperial), `start?` | Log a growth measurement       |
-| `get_latest_growth`  | `child_uid`                                                                      | Most recent growth measurement |
-| `get_growth_history` | `child_uid`, `limit?`                                                            | Growth history, newest first   |
+| Tool                 | Input                                                                                      | Purpose                        |
+| -------------------- | ------------------------------------------------------------------------------------------ | ------------------------------ |
+| `log_growth`         | `child_uid`, `weight?`, `height?`, `head?`, `units?` (metric/imperial), `start?`, `notes?` | Log a growth measurement       |
+| `get_latest_growth`  | `child_uid`                                                                                | Most recent growth measurement |
+| `get_growth_history` | `child_uid`, `limit?`                                                                      | Growth history, newest first   |
 
 ### Solids — custom foods (3)
 
@@ -140,6 +140,10 @@ explicit `log_*` tools to record completed events.)
 
 > All `start`/`end` inputs are **epoch seconds**. Times are stored with a
 > timezone `offset` derived from `HUCKLEBERRY_TIMEZONE`.
+>
+> Every `log_*` tool accepts an optional free-text `notes` field, which is stored
+> on the entry and returned by the matching history/`get_*` tool. `edit_feed`
+> can update `notes` on an existing feed entry.
 
 ### Prompts
 

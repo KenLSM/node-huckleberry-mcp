@@ -8,6 +8,7 @@ export const NursingInterval = z.object({
   leftDuration: z.number().optional(),
   rightDuration: z.number().optional(),
   lastSide: z.enum(["left", "right"]).optional(),
+  notes: z.string().optional(),
   lastUpdated: z.number().optional(),
 });
 
@@ -26,6 +27,7 @@ export const SolidsInterval = z.object({
   mode: z.literal("solids"),
   start: z.number(),
   offset: z.number(),
+  notes: z.string().optional(),
   lastUpdated: z.number().optional(),
 });
 
@@ -46,6 +48,8 @@ export const FeedingInterval = z
     amount: z.number().optional(),
     bottleType: z.string().optional(),
     units: z.string().optional(),
+    // shared
+    notes: z.string().optional(),
   })
   .passthrough();
 

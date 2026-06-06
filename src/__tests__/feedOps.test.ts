@@ -110,6 +110,24 @@ describe("feedOps writes", () => {
     await logSolids(client, "cid", { start: 9 });
     expect(lastIntervalPath()).toBe("feed/cid/intervals");
     expect(lastInterval()).toMatchObject({ mode: "solids", start: 9, offset: OFFSET });
+    expect(lastInterval().notes).toBeUndefined();
+  });
+
+  it("logNursing, logSolids and logPump write notes when provided", async () => {
+    await logNursing(client, "cid", { start: 1, notes: "sleepy feed" });
+    expect(lastInterval().notes).toBe("sleepy feed");
+    vi.clearAllMocks();
+    await logSolids(client, "cid", { start: 2, notes: "avocado" });
+    expect(lastInterval().notes).toBe("avocado");
+    vi.clearAllMocks();
+    await logPump(client, "cid", {
+      start: 3,
+      leftAmount: 30,
+      rightAmount: 30,
+      units: "ml",
+      notes: "morning pump",
+    });
+    expect(lastInterval().notes).toBe("morning pump");
   });
 
   it("logPump writes to the pump collection and splits totalAmount", async () => {

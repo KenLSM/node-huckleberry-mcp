@@ -212,6 +212,17 @@ describe("Data Models", () => {
     });
   });
 
+  describe("notes round-trip (read models surface notes)", () => {
+    it("parses notes on every tracker read model", () => {
+      const notes = "a free-text note";
+      expect(SleepInterval.parse({ start: 1, notes }).notes).toBe(notes);
+      expect(FeedingInterval.parse({ mode: "bottle", start: 1, notes }).notes).toBe(notes);
+      expect(DiaperInterval.parse({ mode: "poo", start: 1, notes }).notes).toBe(notes);
+      expect(PumpInterval.parse({ start: 1, notes }).notes).toBe(notes);
+      expect(GrowthEntry.parse({ mode: "growth", start: 1, notes }).notes).toBe(notes);
+    });
+  });
+
   describe("CustomFood", () => {
     it("parses a valid custom food", () => {
       const now = Date.now();

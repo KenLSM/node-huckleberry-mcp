@@ -12,6 +12,7 @@ export const PumpInterval = z
     rightAmount: z.number().optional(),
     units: z.string().optional(),
     duration: z.number().optional(),
+    notes: z.string().optional(),
     lastUpdated: z.number().optional(),
   })
   .passthrough();
