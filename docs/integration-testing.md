@@ -61,7 +61,7 @@ trivially). Read-only — no test data is written to the account.
 
 ## 3. Live write round-trip (`HUCKLEBERRY_ALLOW_WRITES=1`)
 
-`src/__tests__/live.write.integration.test.ts` proves that the `log_*` ops
+`src/__tests__/live.integration.write.test.ts` proves that the `log_*` ops
 actually land in production. For each tracker it **writes** a real entry, reads
 it back to confirm it persisted, then **deletes** it (exercising the delete
 path) so the account is left clean.
