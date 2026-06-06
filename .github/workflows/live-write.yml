@@ -1,0 +1,41 @@
+# Manually-triggered live WRITE round-trip suite (T3.2).
+#
+# Runs the credential-gated log_*→read-back→delete tests against the REAL account
+# using the repo secrets. Unlike "Live Integration" this MUTATES the account: for
+# each tracker it creates a real entry, verifies it landed, then deletes it.
+# Use a TEST/sandbox account for the repo secrets.
+#
+# Enabled by HUCKLEBERRY_ALLOW_WRITES=1 (set below) in addition to credentials,
+# so it never runs from npm test, CI, or the read-only "Live Integration" job.
+#
+# Required repository secrets: HUCKLEBERRY_EMAIL, HUCKLEBERRY_PASSWORD
+# Optional: HUCKLEBERRY_TIMEZONE (defaults to UTC).
+#
+# Trigger from the Actions tab → "Live Write Round-Trip" → Run workflow. The "Run
+# workflow" button only appears once this file is on the default branch.
+name: Live Write Round-Trip
+
+on:
+  workflow_dispatch:
+
+jobs:
+  live-write:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run live write round-trip tests
+        env:
+          HUCKLEBERRY_EMAIL: ${{ secrets.HUCKLEBERRY_EMAIL }}
+          HUCKLEBERRY_PASSWORD: ${{ secrets.HUCKLEBERRY_PASSWORD }}
+          HUCKLEBERRY_TIMEZONE: ${{ secrets.HUCKLEBERRY_TIMEZONE }}
+          HUCKLEBERRY_ALLOW_WRITES: "1"
+        run: npm run test:integration
