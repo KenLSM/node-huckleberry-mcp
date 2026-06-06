@@ -1,9 +1,9 @@
-# node-huckleberry-mcp
+[![npm version](https://img.shields.io/npm/v/node-huckleberry-mcp)](https://www.npmjs.com/package/node-huckleberry-mcp)
+[![npm downloads](https://img.shields.io/npm/dm/node-huckleberry-mcp)](https://www.npmjs.com/package/node-huckleberry-mcp)
 
-A **Node.js/TypeScript MCP (Model Context Protocol) server** for the [Huckleberry baby tracker](https://huckleberrycare.com/), ported from the MIT-licensed Python projects:
+# Huckleberry MCP Server
 
-- [`Woyken/py-huckleberry-api`](https://github.com/Woyken/py-huckleberry-api) — Firebase Auth + Firestore client
-- [`bckenstler/py-huckleberry-mcp`](https://github.com/bckenstler/py-huckleberry-mcp) — FastMCP server exposing 22 tools
+Unofficial [Huckleberry baby tracker](https://huckleberrycare.com/) MCP server for Claude, Cursor, VS Code, and other AI assistants. Query and log baby sleep, feeds, diapers, pumping, solids, potty, and growth records.
 
 Expose Huckleberry's data (sleep, feeding, growth, diapers, solids) directly in [Claude Desktop](https://claude.ai/download), or integrate the MCP server into other AI applications.
 
