@@ -9,6 +9,7 @@ import {
   listPumpIntervals,
   getFeedHistory,
   editFeed,
+  editPump,
 } from "../client/index.js";
 
 // T2.5: Feeding Tools (7 tools)
@@ -213,6 +214,36 @@ registerTool(
       leftDuration: input.left_duration,
       rightDuration: input.right_duration,
       lastSide: input.last_side,
+      notes: input.notes,
+    });
+    return {
+      content: [{ type: "text", text: JSON.stringify({ edited: input.interval_id }, null, 2) }],
+    };
+  },
+);
+
+// edit_pump — update fields on an existing pump entry (id from list_pump_intervals)
+registerTool(
+  "edit_pump",
+  "Edit an existing pump entry. Get the interval_id from list_pump_intervals first.",
+  z.object({
+    child_uid: z.string().min(1, "child_uid is required"),
+    interval_id: z.string().min(1, "interval_id is required (from list_pump_intervals)"),
+    start: z.number().min(0).optional(),
+    left_amount: z.number().min(0).optional(),
+    right_amount: z.number().min(0).optional(),
+    units: z.enum(["ml", "oz"]).optional(),
+    duration: z.number().min(0).optional(),
+    notes: z.string().optional(),
+  }),
+  async (input) => {
+    const client = await getClient();
+    await editPump(client, input.child_uid, input.interval_id, {
+      start: input.start,
+      leftAmount: input.left_amount,
+      rightAmount: input.right_amount,
+      units: input.units,
+      duration: input.duration,
       notes: input.notes,
     });
     return {

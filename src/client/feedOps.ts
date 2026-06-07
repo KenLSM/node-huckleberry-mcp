@@ -284,16 +284,58 @@ export interface PumpHistoryOptions {
   limit?: number;
 }
 
-/** Returns pump intervals for a child, ordered by start descending. */
+/** Returns pump intervals for a child, ordered by start descending. Each entry
+ * includes its Firestore doc `id` so it can be referenced by `editPump`. */
 export async function listPumpIntervals(
   client: HuckleberryClient,
   childUid: string,
   options: PumpHistoryOptions = {},
-): Promise<PumpIntervalParsed[]> {
+): Promise<(PumpIntervalParsed & { id: string })[]> {
   await client.connect();
   const db = client.getFirestore();
   const col = collection(db, "pump", childUid, "intervals");
   const q = query(col, orderBy("start", "desc"), limit(options.limit ?? 50));
   const snap = await getDocs(q);
-  return snap.docs.map((d) => PumpInterval.parse(d.data()));
+  return snap.docs.map((d) => ({ id: d.id, ...PumpInterval.parse(d.data()) }));
+}
+
+// ── Edit pump ────────────────────────────────────────────────────────────────
+
+export interface EditPumpOptions {
+  /** Event time (epoch seconds). */
+  start?: number;
+  leftAmount?: number;
+  rightAmount?: number;
+  units?: "ml" | "oz";
+  duration?: number;
+  notes?: string;
+}
+
+/**
+ * Updates fields on an existing pump interval (`pump/{cid}/intervals/{id}`).
+ * Only the provided fields are changed; `lastUpdated` is bumped. The interval id
+ * comes from `listPumpIntervals`. Does not touch the parent `prefs` summary.
+ */
+export async function editPump(
+  client: HuckleberryClient,
+  childUid: string,
+  intervalId: string,
+  updates: EditPumpOptions,
+): Promise<void> {
+  const patch: Record<string, unknown> = {
+    ...(updates.start !== undefined && { start: updates.start }),
+    ...(updates.leftAmount !== undefined && { leftAmount: updates.leftAmount }),
+    ...(updates.rightAmount !== undefined && { rightAmount: updates.rightAmount }),
+    ...(updates.units !== undefined && { units: updates.units }),
+    ...(updates.duration !== undefined && { duration: updates.duration }),
+    ...(updates.notes !== undefined && { notes: updates.notes }),
+  };
+  if (Object.keys(patch).length === 0) {
+    throw new Error("editPump requires at least one field to update");
+  }
+  patch.lastUpdated = Date.now() / 1000;
+
+  await client.connect();
+  const db = client.getFirestore();
+  await updateDoc(doc(db, "pump", childUid, "intervals", intervalId), patch);
 }

@@ -1,26 +1,30 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import type { HuckleberryClient } from "../client/HuckleberryClient.js";
 
-const { mockAddDoc, mockSetDoc, mockGetDocs, mockCollection, mockDoc } = vi.hoisted(() => ({
-  mockAddDoc: vi.fn(async () => ({ id: "sleep-id" })),
-  mockSetDoc: vi.fn(async () => undefined),
-  mockGetDocs: vi.fn(),
-  mockCollection: vi.fn((_db: unknown, ...seg: string[]) => ({ path: seg.join("/") })),
-  mockDoc: vi.fn((_db: unknown, ...seg: string[]) => ({ path: seg.join("/") })),
-}));
+const { mockAddDoc, mockSetDoc, mockUpdateDoc, mockGetDocs, mockCollection, mockDoc } = vi.hoisted(
+  () => ({
+    mockAddDoc: vi.fn(async () => ({ id: "sleep-id" })),
+    mockSetDoc: vi.fn(async () => undefined),
+    mockUpdateDoc: vi.fn(async () => undefined),
+    mockGetDocs: vi.fn(),
+    mockCollection: vi.fn((_db: unknown, ...seg: string[]) => ({ path: seg.join("/") })),
+    mockDoc: vi.fn((_db: unknown, ...seg: string[]) => ({ path: seg.join("/") })),
+  }),
+);
 
 vi.mock("firebase/firestore", () => ({
   collection: mockCollection,
   doc: mockDoc,
   addDoc: mockAddDoc,
   setDoc: mockSetDoc,
+  updateDoc: mockUpdateDoc,
   getDocs: mockGetDocs,
   query: (col: unknown) => col,
   orderBy: () => ({}),
   limit: () => ({}),
 }));
 
-import { logSleep, getSleepHistory } from "../client/sleepOps.js";
+import { logSleep, getSleepHistory, editSleep } from "../client/sleepOps.js";
 
 const OFFSET = -480;
 const client = {
@@ -53,12 +57,29 @@ describe("sleepOps", () => {
     expect(body.notes).toBe("fussy bedtime");
   });
 
-  it("getSleepHistory reads sleep/intervals and parses entries", async () => {
+  it("getSleepHistory reads sleep/intervals and includes the doc id", async () => {
     mockGetDocs.mockResolvedValue({
-      docs: [{ data: () => ({ start: 5, duration: 10, offset: OFFSET, lastUpdated: 6 }) }],
+      docs: [
+        { id: "sleep-7", data: () => ({ start: 5, duration: 10, offset: OFFSET, lastUpdated: 6 }) },
+      ],
     });
     const items = await getSleepHistory(client, "cid", { limit: 3 });
     expect(items).toHaveLength(1);
-    expect(items[0]).toMatchObject({ start: 5, duration: 10, offset: OFFSET });
+    expect(items[0]).toMatchObject({ id: "sleep-7", start: 5, duration: 10, offset: OFFSET });
+  });
+});
+
+describe("editSleep", () => {
+  it("updates only provided fields on sleep/{cid}/intervals/{id} + bumps lastUpdated", async () => {
+    await editSleep(client, "cid", "sleep-7", { duration: 1800, notes: "moved nap" });
+    const [ref, patch] = mockUpdateDoc.mock.calls[0] as [{ path: string }, Record<string, unknown>];
+    expect(ref.path).toBe("sleep/cid/intervals/sleep-7");
+    expect(patch).toMatchObject({ duration: 1800, notes: "moved nap" });
+    expect(typeof patch.lastUpdated).toBe("number");
+    expect(patch.start).toBeUndefined();
+  });
+
+  it("throws when no fields are provided", async () => {
+    await expect(editSleep(client, "cid", "sleep-7", {})).rejects.toThrow("at least one");
   });
 });

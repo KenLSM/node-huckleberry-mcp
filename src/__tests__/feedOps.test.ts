@@ -34,6 +34,7 @@ import {
   listPumpIntervals,
   getFeedHistory,
   editFeed,
+  editPump,
 } from "../client/feedOps.js";
 
 const OFFSET = -480;
@@ -155,6 +156,7 @@ describe("feedOps reads", () => {
     mockGetDocs.mockResolvedValue({
       docs: [
         {
+          id: "pump-1",
           data: () => ({
             entryMode: "total",
             start: 1,
@@ -171,7 +173,7 @@ describe("feedOps reads", () => {
     // Regression: parsing pump docs with the FeedingInterval union threw (no `mode`).
     const res = await listPumpIntervals(client, "cid");
     expect(res).toHaveLength(1);
-    expect(res[0]).toMatchObject({ entryMode: "total", leftAmount: 6, units: "oz" });
+    expect(res[0]).toMatchObject({ id: "pump-1", entryMode: "total", leftAmount: 6, units: "oz" });
   });
 
   it("getFeedHistory includes the doc id (needed for editFeed)", async () => {
@@ -197,5 +199,20 @@ describe("editFeed", () => {
 
   it("throws when no fields are provided", async () => {
     await expect(editFeed(client, "cid", "feed-123", {})).rejects.toThrow("at least one");
+  });
+});
+
+describe("editPump", () => {
+  it("updates only provided fields on pump/{cid}/intervals/{id} + bumps lastUpdated", async () => {
+    await editPump(client, "cid", "pump-1", { leftAmount: 50, units: "ml" });
+    const [ref, patch] = mockUpdateDoc.mock.calls[0] as [{ path: string }, Record<string, unknown>];
+    expect(ref.path).toBe("pump/cid/intervals/pump-1");
+    expect(patch).toMatchObject({ leftAmount: 50, units: "ml" });
+    expect(typeof patch.lastUpdated).toBe("number");
+    expect(patch.rightAmount).toBeUndefined();
+  });
+
+  it("throws when no fields are provided", async () => {
+    await expect(editPump(client, "cid", "pump-1", {})).rejects.toThrow("at least one");
   });
 });
