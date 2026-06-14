@@ -13,14 +13,14 @@ and catch where the Python reference is wrong. This is the method behind the
 - The Firebase **client SDK cannot list** root collections or subcollection names
   (security rules + API design). So we can't "crawl" the database — discovery is
   **guided**: enumerate candidate paths from evidence, then probe each one.
-- Writes are the riskiest to port blind. We must observe the *real* document a
+- Writes are the riskiest to port blind. We must observe the _real_ document a
   write produces before replicating it.
 
 ## Sources of truth (ranked)
 
 1. **The real Firestore data on our account** — authoritative for document
-   *shapes*. Captured with `scripts/inspect-schema.mjs`.
-2. **The official app's behavior** — authoritative for *operations* (which paths
+   _shapes_. Captured with `scripts/inspect-schema.mjs`.
+2. **The official app's behavior** — authoritative for _operations_ (which paths
    are written, what payload, what queries). Captured by acting in the app and
    re-reading Firestore, or (deeper) by traffic capture.
 3. **The Python reference** (`Woyken/py-huckleberry-api`, `bckenstler/py-huckleberry-mcp`)
@@ -31,8 +31,8 @@ and catch where the Python reference is wrong. This is the method behind the
 
 For every feature/area we want to map:
 
-1. **Act in the app** — perform the action once (e.g. log a solid with two foods
-   + a "LOVED" reaction + a photo; add a medication; add a caregiver).
+1. **Act in the app** — perform the action once (e.g. log a solids meal with two
+   foods, a "LOVED" reaction, and a photo; add a medication; add a caregiver).
 2. **Inspect Firestore** — run `npm run inspect:schema` (extended, see below) and
    capture the resulting document(s): the entry, its parent `prefs`, and any other
    doc that changed.
@@ -44,7 +44,7 @@ For every feature/area we want to map:
    the Python port.
 
 This "act → inspect" loop avoids decoding Firestore's gRPC/protobuf traffic: the
-database *is* the ground truth, so we read the result instead of the wire.
+database _is_ the ground truth, so we read the result instead of the wire.
 
 ## Tracks
 
@@ -88,7 +88,7 @@ cover all modes — not just the first one we happen to see.
 
 ### Track D — Operation capture (the real "API")
 
-To know *exactly* what the app writes (and any server-side massaging), two options:
+To know _exactly_ what the app writes (and any server-side massaging), two options:
 
 - **Preferred — act→inspect diff:** snapshot the relevant doc(s) before and after
   an in-app action; the diff is the write. No decoding needed.
@@ -136,6 +136,7 @@ dump) so we can diff captures over time and semi-generate Zod models.
 
 The method's first target. In the app: log a solids meal with ≥2 foods (one
 curated, one custom), a reaction, and a photo; create a custom food. Then inspect
-`feed/{cid}/intervals` and `types/{cid}/custom`, compare to the Python shapes
-(`foods` map, `reactions`, `foodNoteImage`; custom-food `type/archived/source/
-image` + ISO timestamps), and port to whatever the **real** docs show.
+`feed/{cid}/intervals` and `types/{cid}/custom`, compare to the Python shapes (the
+solids interval's `foods` map, `reactions`, and `foodNoteImage`; the custom-food
+doc's `type`, `archived`, `source`, and `image` fields plus ISO timestamps), and
+port to whatever the **real** docs show.
