@@ -1,20 +1,32 @@
 #!/usr/bin/env node
 /**
- * Live schema inspector (part of the T3.2 integration harness).
+ * Live Firestore schema inspector / discovery prober (T3.2 harness; B6).
  *
- * Logs into a REAL Huckleberry account and dumps the raw Firestore document
- * shapes for every tracker, so we can port the client models/ops to the actual
- * schema instead of guessing. Read-only: it never writes.
+ * Logs into a REAL Huckleberry account and probes a set of candidate Firestore
+ * paths, reporting which exist and dumping their document shapes, so we can map
+ * the full schema empirically instead of guessing. The Firebase client SDK can't
+ * list collections, so discovery is *guided*: we probe known + candidate paths.
+ * See docs/discovery-plan.md. Read-only — it never writes.
  *
  * Usage:
  *   HUCKLEBERRY_EMAIL=you@example.com HUCKLEBERRY_PASSWORD='…' \
  *     node scripts/inspect-schema.mjs
  *
- * Optional: CHILD_UID=<cid> to inspect a specific child (default: lastChild).
+ * Options (env):
+ *   CHILD_UID    inspect a specific child (default: lastChild / first child).
+ *   PROBE_PATHS  extra probe specs, comma-separated. Each spec is "doc" or
+ *                "doc:sub" with {cid}/{uid} placeholders, e.g.
+ *                "medication/{cid}:entries,types/{cid}:custom".
+ *   ONLY_PROBES  "1" to probe ONLY PROBE_PATHS (skip the built-in candidates).
+ *   SAMPLE       max sample entries dumped per subcollection (default 8).
+ *   OUT          write machine-readable JSON here (default: schema-dump.json).
+ *                Set OUT=- to skip the JSON file. The dump may contain personal
+ *                data — it is gitignored; don't commit it.
  */
 import { initializeApp } from "firebase/app";
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
 import { getFirestore, doc, getDoc, collection, getDocs, query, limit } from "firebase/firestore";
+import { writeFileSync } from "node:fs";
 
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyApGVHktXeekGyAt-G6dIeWHUkq2oXqcjg",
@@ -28,6 +40,61 @@ if (!email || !password) {
   console.error("Set HUCKLEBERRY_EMAIL and HUCKLEBERRY_PASSWORD to run the inspector.");
   process.exit(2);
 }
+
+const SAMPLE = Number(process.env.SAMPLE ?? 8);
+const OUT = process.env.OUT ?? "schema-dump.json";
+
+// ── Probe specs ──────────────────────────────────────────────────────────────
+// A spec is "doc" or "doc:sub" with {cid}/{uid} placeholders. `verified` paths
+// are the live-confirmed schema; `candidate` paths are guesses we sweep to
+// discover collections we don't model yet (most will report empty/absent — that
+// is the point). Add more at runtime with PROBE_PATHS without editing this file.
+const VERIFIED = [
+  "users/{uid}",
+  "childs/{cid}",
+  "sleep/{cid}:intervals",
+  "feed/{cid}:intervals",
+  "diaper/{cid}:intervals",
+  "pump/{cid}:intervals",
+  "health/{cid}:data",
+  "types/{cid}:custom",
+];
+
+// Guesses (one plausible subcollection each) — confirm/expand via PROBE_PATHS.
+const CANDIDATES = [
+  "medication/{cid}:data",
+  "temperature/{cid}:data",
+  "measurement/{cid}:data",
+  "milestone/{cid}:data",
+  "activity/{cid}:intervals",
+  "symptom/{cid}:data",
+  "mood/{cid}:data",
+  "journal/{cid}:entries",
+  "photo/{cid}:data",
+  "vaccine/{cid}:data",
+  "teeth/{cid}:data",
+];
+
+function parseSpec(spec) {
+  const [docPath, sub] = spec.trim().split(":");
+  return { spec: spec.trim(), docPath, sub: sub || null };
+}
+
+function buildProbeList() {
+  const extra = (process.env.PROBE_PATHS ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const onlyProbes = process.env.ONLY_PROBES === "1";
+  const base = onlyProbes ? [] : [...VERIFIED, ...CANDIDATES];
+  // De-dupe by spec, preserving order (extras last so they can't be dropped).
+  const seen = new Set();
+  return [...base, ...extra]
+    .filter((s) => (seen.has(s) ? false : (seen.add(s), true)))
+    .map(parseSpec);
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
 
 // Reveal Firestore types (Timestamp vs number) in the JSON dump.
 function annotate(value) {
@@ -48,6 +115,19 @@ function dump(label, data) {
   console.log(data === null ? "(no document)" : JSON.stringify(annotate(data), null, 2));
 }
 
+// Distinct discriminator values (mode/type) across sample entries — surfaces the
+// variants multiplexed into one collection (e.g. feed = nursing/bottle/solids).
+function discriminators(samples) {
+  const out = {};
+  for (const key of ["mode", "type"]) {
+    const vals = [...new Set(samples.map((s) => s[key]).filter((v) => v !== undefined))];
+    if (vals.length) out[key] = vals;
+  }
+  return out;
+}
+
+// ── Connect ──────────────────────────────────────────────────────────────────
+
 const app = initializeApp(FIREBASE_CONFIG);
 const auth = getAuth(app);
 const db = getFirestore(app);
@@ -66,38 +146,74 @@ if (!cid) {
   process.exit(1);
 }
 
-// The child profile doc — captures the real shape of childs/{cid} (gender, etc.).
-const childSnap = await getDoc(doc(db, "childs", cid));
-dump(`childs/${cid} (child profile)`, childSnap.data() ?? null);
+const resolve = (tpl) => tpl.replaceAll("{cid}", cid).replaceAll("{uid}", uid);
 
-// parent doc → show prefs/summary shape; subcollection → show a few raw entries.
-const trackers = [
-  { name: "sleep", sub: "intervals" },
-  { name: "feed", sub: "intervals" },
-  { name: "diaper", sub: "intervals" },
-  { name: "pump", sub: "intervals" },
-  { name: "health", sub: "data" },
-];
+// ── Probe ────────────────────────────────────────────────────────────────────
 
-for (const { name, sub } of trackers) {
-  const parentSnap = await getDoc(doc(db, name, cid));
-  const parent = parentSnap.data() ?? null;
+const report = { capturedAt: new Date().toISOString(), uid, cid, probes: [] };
+
+for (const { spec, docPath, sub } of buildProbeList()) {
+  const docSegments = resolve(docPath).split("/");
+  const entry = { spec, docPath: resolve(docPath), doc: null, sub: null };
+
+  // Parent document (may be absent even when a subcollection exists — phantom
+  // parent — so a missing doc is not proof the path is unused).
+  const parentSnap = await getDoc(doc(db, ...docSegments));
+  const parent = parentSnap.exists() ? parentSnap.data() : null;
+  entry.doc = parent
+    ? {
+        status: "exists",
+        keys: Object.keys(parent),
+        prefsKeys: parent.prefs ? Object.keys(parent.prefs) : null,
+      }
+    : { status: "absent" };
   dump(
-    `${name}/${cid} (parent — note .prefs)`,
+    `${resolve(docPath)} (parent doc)`,
     parent ? { prefs: parent.prefs ?? null, keys: Object.keys(parent) } : null,
   );
 
-  // Several entry types share one collection (feed = nursing/bottle/pump-less/solids,
-  // diaper = diaper+potty), so pull enough to capture each variant.
-  const snap = await getDocs(query(collection(db, name, cid, sub), limit(15)));
-  if (snap.empty) {
-    dump(`${name}/${cid}/${sub} (sample entries)`, null);
-  } else {
-    snap.docs.forEach((d, i) => dump(`${name}/${cid}/${sub}[${i}] id=${d.id}`, d.data()));
+  // Subcollection sample.
+  if (sub) {
+    const subPath = `${resolve(docPath)}/${sub}`;
+    const snap = await getDocs(query(collection(db, ...docSegments, sub), limit(SAMPLE)));
+    const samples = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    entry.sub = {
+      path: subPath,
+      status: samples.length ? "has-entries" : "empty/absent",
+      count: samples.length,
+      discriminators: discriminators(samples),
+      sampleIds: samples.map((s) => s.id),
+      samples: samples.map(annotate),
+    };
+    if (samples.length === 0) {
+      dump(`${subPath} (sample entries)`, null);
+    } else {
+      snap.docs.forEach((d, i) => dump(`${subPath}[${i}] id=${d.id}`, d.data()));
+    }
   }
+
+  report.probes.push(entry);
 }
 
-console.log(
-  "\nDone. Paste this output back so the client models/ops can be ported to the real schema.",
-);
+// ── Summary ──────────────────────────────────────────────────────────────────
+
+console.log("\n──── probe summary ────");
+for (const p of report.probes) {
+  const docState = p.doc.status === "exists" ? "doc✓" : "doc✗";
+  const subState = p.sub
+    ? p.sub.status === "has-entries"
+      ? `${p.sub.path} ✓ (${p.sub.count}${
+          Object.keys(p.sub.discriminators).length ? ` ${JSON.stringify(p.sub.discriminators)}` : ""
+        })`
+      : `${p.sub.path} ∅`
+    : "";
+  console.log(`  ${docState}  ${p.spec.padEnd(26)} ${subState}`);
+}
+
+if (OUT !== "-") {
+  writeFileSync(OUT, JSON.stringify(report, null, 2));
+  console.log(`\nWrote machine-readable dump to ${OUT} (gitignored — do not commit).`);
+}
+
+console.log("\nDone. Update docs/firestore-schema.md with anything newly confirmed.");
 process.exit(0);

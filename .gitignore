@@ -9,3 +9,6 @@ npm-debug.log*
 .idea/
 *.swp
 *.swo
+
+# schema inspector dumps — may contain personal account data
+schema-dump*.json
