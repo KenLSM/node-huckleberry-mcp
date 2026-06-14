@@ -67,6 +67,13 @@ src/
 - Ground-truth the schema with `npm run inspect:schema`; validate parsing with
   `npm run test:integration` (both gated on `HUCKLEBERRY_*` creds). Don't invent
   fields — if unsure, inspect a real document.
+- **We deviate from the Python reference on purpose.** Treat `py-huckleberry-api`
+  /`py-huckleberry-mcp` as leads, not a spec — they are reverse-engineered and can
+  be wrong/stale. For any new feature, verify the real Firestore/API behavior
+  ourselves (act in app → `inspect:schema` → build to the observed shape → prove
+  with a gated live round-trip) and follow the backend where it disagrees with the
+  port. See `docs/discovery-plan.md` for the mapping method and `TASKS.md` → B5 for
+  a confirmed deviation (solids food tracking).
 
 ## How to pick up work
 
