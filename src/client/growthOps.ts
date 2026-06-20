@@ -3,6 +3,7 @@ import {
   addDoc,
   doc,
   updateDoc,
+  deleteDoc,
   getDocs,
   query,
   orderBy,
@@ -134,4 +135,21 @@ export async function editGrowth(
   await client.connect();
   const db = client.getFirestore();
   await updateDoc(doc(db, "health", childUid, "data", entryId), patch);
+}
+
+// ── Delete growth ────────────────────────────────────────────────────────────
+
+/**
+ * Permanently deletes a growth entry (`health/{cid}/data/{id}`). The id comes
+ * from `getGrowthHistory` / `getLatestGrowth`. Growth keeps no `prefs` summary,
+ * so nothing else needs updating.
+ */
+export async function deleteGrowth(
+  client: HuckleberryClient,
+  childUid: string,
+  entryId: string,
+): Promise<void> {
+  await client.connect();
+  const db = client.getFirestore();
+  await deleteDoc(doc(db, "health", childUid, "data", entryId));
 }

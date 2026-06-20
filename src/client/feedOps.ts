@@ -1,4 +1,13 @@
-import { collection, doc, updateDoc, getDocs, query, orderBy, limit } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  updateDoc,
+  deleteDoc,
+  getDocs,
+  query,
+  orderBy,
+  limit,
+} from "firebase/firestore";
 import type { HuckleberryClient } from "./HuckleberryClient.js";
 import {
   FeedingInterval,
@@ -214,6 +223,23 @@ export async function editFeed(
   await updateDoc(doc(db, "feed", childUid, "intervals", intervalId), patch);
 }
 
+// ── Delete feed ──────────────────────────────────────────────────────────────
+
+/**
+ * Permanently deletes a feed interval (`feed/{cid}/intervals/{id}`) — nursing,
+ * bottle, or solids. The id comes from `getFeedHistory`. Does **not** recompute
+ * the parent `prefs.lastFeed` summary.
+ */
+export async function deleteFeed(
+  client: HuckleberryClient,
+  childUid: string,
+  intervalId: string,
+): Promise<void> {
+  await client.connect();
+  const db = client.getFirestore();
+  await deleteDoc(doc(db, "feed", childUid, "intervals", intervalId));
+}
+
 // ── Pump ───────────────────────────────────────────────────────────────────
 
 export interface LogPumpOptions {
@@ -338,4 +364,20 @@ export async function editPump(
   await client.connect();
   const db = client.getFirestore();
   await updateDoc(doc(db, "pump", childUid, "intervals", intervalId), patch);
+}
+
+// ── Delete pump ──────────────────────────────────────────────────────────────
+
+/**
+ * Permanently deletes a pump interval (`pump/{cid}/intervals/{id}`). The id comes
+ * from `listPumpIntervals`. Does **not** recompute the parent `prefs.lastPump`.
+ */
+export async function deletePump(
+  client: HuckleberryClient,
+  childUid: string,
+  intervalId: string,
+): Promise<void> {
+  await client.connect();
+  const db = client.getFirestore();
+  await deleteDoc(doc(db, "pump", childUid, "intervals", intervalId));
 }

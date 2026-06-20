@@ -3,16 +3,23 @@ import type { HuckleberryClient } from "../client/HuckleberryClient.js";
 
 // Mock firebase/firestore so we can assert the exact document bodies written.
 // collection()/doc() return the path so we can verify the right collection.
-const { mockAddDoc, mockSetDoc, mockUpdateDoc, mockGetDocs, mockCollection, mockDoc } = vi.hoisted(
-  () => ({
-    mockAddDoc: vi.fn(async () => ({ id: "new-id" })),
-    mockSetDoc: vi.fn(async () => undefined),
-    mockUpdateDoc: vi.fn(async () => undefined),
-    mockGetDocs: vi.fn(),
-    mockCollection: vi.fn((_db: unknown, ...seg: string[]) => ({ path: seg.join("/") })),
-    mockDoc: vi.fn((_db: unknown, ...seg: string[]) => ({ path: seg.join("/") })),
-  }),
-);
+const {
+  mockAddDoc,
+  mockSetDoc,
+  mockUpdateDoc,
+  mockDeleteDoc,
+  mockGetDocs,
+  mockCollection,
+  mockDoc,
+} = vi.hoisted(() => ({
+  mockAddDoc: vi.fn(async () => ({ id: "new-id" })),
+  mockSetDoc: vi.fn(async () => undefined),
+  mockUpdateDoc: vi.fn(async () => undefined),
+  mockDeleteDoc: vi.fn(async () => undefined),
+  mockGetDocs: vi.fn(),
+  mockCollection: vi.fn((_db: unknown, ...seg: string[]) => ({ path: seg.join("/") })),
+  mockDoc: vi.fn((_db: unknown, ...seg: string[]) => ({ path: seg.join("/") })),
+}));
 
 vi.mock("firebase/firestore", () => ({
   collection: mockCollection,
@@ -20,6 +27,7 @@ vi.mock("firebase/firestore", () => ({
   addDoc: mockAddDoc,
   setDoc: mockSetDoc,
   updateDoc: mockUpdateDoc,
+  deleteDoc: mockDeleteDoc,
   getDocs: mockGetDocs,
   query: (col: unknown) => col,
   orderBy: () => ({}),
@@ -35,6 +43,8 @@ import {
   getFeedHistory,
   editFeed,
   editPump,
+  deleteFeed,
+  deletePump,
 } from "../client/feedOps.js";
 
 const OFFSET = -480;
@@ -214,5 +224,21 @@ describe("editPump", () => {
 
   it("throws when no fields are provided", async () => {
     await expect(editPump(client, "cid", "pump-1", {})).rejects.toThrow("at least one");
+  });
+});
+
+describe("deleteFeed / deletePump", () => {
+  it("deleteFeed deletes feed/{cid}/intervals/{id}", async () => {
+    await deleteFeed(client, "cid", "feed-123");
+    expect((mockDeleteDoc.mock.calls[0][0] as { path: string }).path).toBe(
+      "feed/cid/intervals/feed-123",
+    );
+  });
+
+  it("deletePump deletes pump/{cid}/intervals/{id}", async () => {
+    await deletePump(client, "cid", "pump-1");
+    expect((mockDeleteDoc.mock.calls[0][0] as { path: string }).path).toBe(
+      "pump/cid/intervals/pump-1",
+    );
   });
 });

@@ -1,7 +1,13 @@
 import { z } from "zod";
 import { registerTool } from "../server/server.js";
 import { getClient } from "../server/auth.js";
-import { logDiaper, logPotty, getDiaperHistory, editDiaper } from "../client/index.js";
+import {
+  logDiaper,
+  logPotty,
+  getDiaperHistory,
+  editDiaper,
+  deleteDiaper,
+} from "../client/index.js";
 
 // T2.6: Diaper & Potty Tools (3 tools)
 
@@ -119,6 +125,23 @@ registerTool(
     });
     return {
       content: [{ type: "text", text: JSON.stringify({ edited: input.interval_id }, null, 2) }],
+    };
+  },
+);
+
+// delete_diaper — permanently remove a diaper/potty entry (id from get_diaper_history)
+registerTool(
+  "delete_diaper",
+  "Permanently delete a diaper or potty entry. Get the interval_id from get_diaper_history first.",
+  z.object({
+    child_uid: z.string().min(1, "child_uid is required"),
+    interval_id: z.string().min(1, "interval_id is required (from get_diaper_history)"),
+  }),
+  async (input) => {
+    const client = await getClient();
+    await deleteDiaper(client, input.child_uid, input.interval_id);
+    return {
+      content: [{ type: "text", text: JSON.stringify({ deleted: input.interval_id }, null, 2) }],
     };
   },
 );

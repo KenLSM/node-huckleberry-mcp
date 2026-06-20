@@ -1,7 +1,13 @@
 import { z } from "zod";
 import { registerTool } from "../server/server.js";
 import { getClient } from "../server/auth.js";
-import { logGrowth, getLatestGrowth, getGrowthHistory, editGrowth } from "../client/index.js";
+import {
+  logGrowth,
+  getLatestGrowth,
+  getGrowthHistory,
+  editGrowth,
+  deleteGrowth,
+} from "../client/index.js";
 
 // T2.7: Growth Tools (3 tools)
 
@@ -88,5 +94,20 @@ registerTool(
       notes: input.notes,
     });
     return asResult({ edited: input.entry_id });
+  },
+);
+
+// delete_growth — permanently remove a growth entry (id from get_growth_history)
+registerTool(
+  "delete_growth",
+  "Permanently delete a growth measurement. Get the entry id from get_growth_history or get_latest_growth first.",
+  z.object({
+    child_uid: z.string().min(1, "child_uid is required"),
+    entry_id: z.string().min(1, "entry_id is required (from get_growth_history)"),
+  }),
+  async (input) => {
+    const client = await getClient();
+    await deleteGrowth(client, input.child_uid, input.entry_id);
+    return asResult({ deleted: input.entry_id });
   },
 );
