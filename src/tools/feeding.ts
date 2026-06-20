@@ -80,19 +80,32 @@ registerTool(
   },
 );
 
-// log_solids — log solids feeding
+// log_solids — log solids feeding (optionally with foods eaten + a reaction)
 registerTool(
   "log_solids",
-  "Log a solids feeding",
+  "Log a solids feeding. Optionally attach the foods eaten (id/name/source from list_curated_foods or list_custom_foods) and the baby's reaction.",
   z.object({
     child_uid: z.string().min(1, "child_uid is required"),
     start: z.number().min(0, "start is required (epoch seconds)"),
+    foods: z
+      .array(
+        z.object({
+          id: z.string().min(1, "food id is required"),
+          name: z.string().min(1, "food name is required"),
+          source: z.enum(["curated", "custom"]),
+          amount: z.union([z.string(), z.number()]).optional(),
+        }),
+      )
+      .optional(),
+    reaction: z.enum(["LOVED", "MEH", "HATED", "ALLERGIC"]).optional(),
     notes: z.string().optional(),
   }),
   async (input) => {
     const client = await getClient();
     const id = await logSolids(client, input.child_uid, {
       start: input.start,
+      foods: input.foods,
+      reaction: input.reaction,
       notes: input.notes,
     });
     return {

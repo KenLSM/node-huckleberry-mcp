@@ -20,6 +20,8 @@ import {
   logGrowth,
   getGrowthHistory,
   editGrowth,
+  createCustomFood,
+  listCustomFoods,
 } from "../client/index.js";
 
 /**
@@ -282,5 +284,59 @@ describe.skipIf(!enabled)("live write round-trip (log_* + edit_* + delete)", () 
         expectedNotes: edited,
       },
     );
+  });
+
+  // B5: solids meal content (foods + reaction). Shapes are ported from the Python
+  // API and not yet app-confirmed — this proves Firestore accepts + returns them.
+  it("solids with foods + reaction round-trips", { timeout: 30000 }, async () => {
+    const client = makeClient();
+    try {
+      const cid = await getDefaultChildUid(client);
+      const start = uniqueStart();
+      const id = await logSolids(client, cid, {
+        start,
+        foods: [{ id: "test-food", name: "Test Food", source: "curated", amount: "a little" }],
+        reaction: "LOVED",
+        notes: "solids+foods round-trip",
+      });
+      try {
+        const items = await getFeedHistory(client, cid, { limit: 50 });
+        const entry = items.find((e) => e.start === start) as
+          | {
+              foods?: Record<string, { created_name?: string }>;
+              reactions?: Record<string, boolean>;
+            }
+          | undefined;
+        expect(entry, "solids entry should have been written").toBeDefined();
+        expect(entry?.foods?.["test-food"]?.created_name).toBe("Test Food");
+        expect(entry?.reactions?.LOVED).toBe(true);
+      } finally {
+        await client.deleteDoc("feed", cid, "intervals", id).catch(() => undefined);
+      }
+    } finally {
+      await client.signOut();
+    }
+  });
+
+  // B5: custom food create → list → delete. Custom-food write shape is ported
+  // from the Python API and not yet app-confirmed.
+  it("custom food: create, list, delete", { timeout: 30000 }, async () => {
+    const client = makeClient();
+    try {
+      const cid = await getDefaultChildUid(client);
+      const name = `RT custom food ${Date.now()}`;
+      const id = await createCustomFood(client, cid, name);
+      try {
+        const foods = await listCustomFoods(client, cid);
+        const food = foods.find((f) => f.id === id);
+        expect(food, "created custom food should be listed").toBeDefined();
+        expect(food?.name).toBe(name);
+        expect(food?.type).toBe("solids");
+      } finally {
+        await client.deleteDoc("types", cid, "custom", id).catch(() => undefined);
+      }
+    } finally {
+      await client.signOut();
+    }
   });
 });

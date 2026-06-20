@@ -114,7 +114,7 @@ explicit `log_*` tools to record completed events.)
 | --------------------- | -------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
 | `log_nursing`         | `child_uid`, `start`, `left_duration?`, `right_duration?`, `last_side?`, `notes?`                                                | Log a nursing session                   |
 | `log_bottle`          | `child_uid`, `start`, `amount`, `bottle_type`, `units`, `notes?`                                                                 | Log a bottle feeding                    |
-| `log_solids`          | `child_uid`, `start`, `notes?`                                                                                                   | Log a solids feeding                    |
+| `log_solids`          | `child_uid`, `start`, `foods?` (`[{id,name,source,amount?}]`), `reaction?` (LOVED/MEH/HATED/ALLERGIC), `notes?`                  | Log a solids feeding (+ foods/reaction) |
 | `log_pump`            | `child_uid`, `start`, `left_amount`/`right_amount` or `total_amount`, `units`, `duration?`, `notes?`                             | Log a pumping session                   |
 | `list_pump_intervals` | `child_uid`, `limit?`                                                                                                            | Recent pump sessions (incl. `id`)       |
 | `get_feed_history`    | `child_uid`, `limit?`                                                                                                            | Recent feeds (incl. `id`), newest first |
@@ -145,11 +145,17 @@ explicit `log_*` tools to record completed events.)
 
 ### Solids — custom foods (3)
 
-| Tool                 | Input                                                    | Purpose                         |
-| -------------------- | -------------------------------------------------------- | ------------------------------- |
-| `list_curated_foods` | —                                                        | Fetch the curated food database |
-| `list_custom_foods`  | `child_uid`                                              | List custom foods for a child   |
-| `create_custom_food` | `child_uid`, `name`, `category?`, `allergens?`, `notes?` | Create a custom food entry      |
+| Tool                 | Input                            | Purpose                                            |
+| -------------------- | -------------------------------- | -------------------------------------------------- |
+| `list_curated_foods` | `limit?`                         | Fetch the curated food database                    |
+| `list_custom_foods`  | `child_uid`, `include_archived?` | List a child's custom solids foods (newest first)  |
+| `create_custom_food` | `child_uid`, `name`, `image?`    | Create a custom solids food; returns its `food_id` |
+
+> **Solids food tracking** is ported from the Python reference and **not yet
+> confirmed against the live app** (see `docs/firestore-schema.md` → deviations).
+> Use `list_curated_foods`/`list_custom_foods` to get food `id`/`name`/`source`,
+> pass them to `log_solids` as `foods`, and a custom food's `food_id` uses
+> `source: "custom"`.
 
 > All `start`/`end` inputs are **epoch seconds**. Times are stored with a
 > timezone `offset` derived from `HUCKLEBERRY_TIMEZONE`.
