@@ -42,6 +42,22 @@ Convert the user's natural language to epoch seconds:
 | `log_nursing`            | `left_duration` / `right_duration` | seconds                                                |
 | `log_pump`               | amounts                            | give `total_amount`, or `left_amount` + `right_amount` |
 
+## 3b. Solids: foods & reactions
+
+`log_solids` can record **what** was eaten and the baby's reaction, not just that
+solids happened:
+
+- To attach foods, first get their `id`/`name`/`source` from `list_curated_foods`
+  (curated DB) or `list_custom_foods` (the child's own), then pass them as
+  `foods: [{ id, name, source, amount? }]`. A custom food's `source` is `"custom"`;
+  curated is `"curated"`.
+- Need a food that doesn't exist yet? `create_custom_food` returns a `food_id` you
+  can then use with `source: "custom"`.
+- `reaction` is one of `LOVED` / `MEH` / `HATED` / `ALLERGIC`.
+
+(Solids food tracking is ported from the reference and not yet app-confirmed —
+fine to use, but a value may need verification.)
+
 ## 4. There are no live timers
 
 You log **completed** events. `log_sleep` takes both `start` and `end`. There is

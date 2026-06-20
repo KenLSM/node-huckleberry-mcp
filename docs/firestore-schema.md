@@ -57,13 +57,17 @@ Every parent `prefs` also carries `timestamp:{ seconds:<float> }` and
 
 - **Diaper `quantity`** ✅ — a **scalar** (`0/50/100` = little/medium/big), _not_ the
   `{pee,poo}` map the Python source uses. Live wins.
-- **Solids food tracking** 🟡 (B5) — the Python API's `log_solids` stores a `foods`
-  map (`{id:{id,created_name,source,amount}}`), `reactions` (`{LOVED|MEH|HATED|ALLERGIC:true}`),
-  and `foodNoteImage`; its `create_solids_custom_food` writes
-  `{type:"solids", source:"custom", archived, image, id, created_at, updated_at}`
-  (ISO strings). Our current `log_solids`/`create_custom_food` write neither shape.
-  **Confirm the real docs before porting** — act in app, then inspect the
-  `feed/{cid}/intervals` and `types/{cid}/custom` documents.
+- **Solids food tracking** 🟡 (B5) — **implemented to the Python shape, not yet
+  app-confirmed.** `log_solids` now writes a `foods` map
+  (`{id:{id,created_name,source,amount?}}`) and `reactions`
+  (`{LOVED|MEH|HATED|ALLERGIC:true}`); `create_custom_food` writes
+  `{id, name, type:"solids", source:"custom", archived:false, image, created_at,
+updated_at}` with ISO-string timestamps (doc id == `id`). `foodNoteImage` (meal
+  photo) is **not** implemented (needs an upload). The gated live round-trip proves
+  Firestore accepts + returns these, but **confirm they display correctly in the
+  app** (log a solid with foods in the app and inspect `feed/{cid}/intervals`;
+  create a food in the app and inspect `types/{cid}/custom`) — the field names/doc
+  shape may differ from the Python reference.
 
 ## Candidates to confirm (❓)
 

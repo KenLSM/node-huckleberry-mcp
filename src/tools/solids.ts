@@ -27,16 +27,19 @@ registerTool(
   },
 );
 
-// list_custom_foods — retrieve custom foods created for a child
+// list_custom_foods — retrieve custom solids foods created for a child
 registerTool(
   "list_custom_foods",
-  "Retrieve custom foods created for a child",
+  "Retrieve custom solids foods created for a child (newest first; archived excluded unless include_archived).",
   z.object({
     child_uid: z.string().min(1, "child_uid is required"),
+    include_archived: z.boolean().optional(),
   }),
   async (input) => {
     const client = await getClient();
-    const result = await listCustomFoods(client, input.child_uid);
+    const result = await listCustomFoods(client, input.child_uid, {
+      includeArchived: input.include_archived,
+    });
     return {
       content: [
         {
@@ -48,21 +51,19 @@ registerTool(
   },
 );
 
-// create_custom_food — create a custom food entry
+// create_custom_food — create a custom solids food entry
 registerTool(
   "create_custom_food",
-  "Create a custom food entry for a child",
+  "Create a custom solids food for a child. Returns the food id, which can be passed to log_solids as a food with source 'custom'.",
   z.object({
     child_uid: z.string().min(1, "child_uid is required"),
     name: z.string().min(1, "Food name is required"),
-    category: z.string().optional(),
-    allergens: z.array(z.string()).optional(),
+    image: z.string().optional(),
   }),
   async (input) => {
     const client = await getClient();
     const id = await createCustomFood(client, input.child_uid, input.name, {
-      category: input.category,
-      allergens: input.allergens,
+      image: input.image,
     });
     return {
       content: [
