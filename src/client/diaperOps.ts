@@ -1,4 +1,13 @@
-import { collection, doc, updateDoc, getDocs, query, orderBy, limit } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  updateDoc,
+  deleteDoc,
+  getDocs,
+  query,
+  orderBy,
+  limit,
+} from "firebase/firestore";
 import type { HuckleberryClient } from "./HuckleberryClient.js";
 import { DiaperInterval, type DiaperIntervalParsed } from "../models/index.js";
 import { writeIntervalWithPrefs } from "./prefs.js";
@@ -164,4 +173,21 @@ export async function editDiaper(
   await client.connect();
   const db = client.getFirestore();
   await updateDoc(doc(db, "diaper", childUid, "intervals", intervalId), patch);
+}
+
+// ── Delete diaper / potty ────────────────────────────────────────────────────
+
+/**
+ * Permanently deletes a diaper/potty interval (`diaper/{cid}/intervals/{id}`).
+ * The id comes from `getDiaperHistory`. Does **not** recompute the parent
+ * `prefs.lastDiaper`/`lastPotty` summary.
+ */
+export async function deleteDiaper(
+  client: HuckleberryClient,
+  childUid: string,
+  intervalId: string,
+): Promise<void> {
+  await client.connect();
+  const db = client.getFirestore();
+  await deleteDoc(doc(db, "diaper", childUid, "intervals", intervalId));
 }

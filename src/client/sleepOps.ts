@@ -1,4 +1,13 @@
-import { collection, doc, updateDoc, getDocs, query, orderBy, limit } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  updateDoc,
+  deleteDoc,
+  getDocs,
+  query,
+  orderBy,
+  limit,
+} from "firebase/firestore";
 import type { HuckleberryClient } from "./HuckleberryClient.js";
 import { SleepInterval, type SleepIntervalParsed } from "../models/index.js";
 import { writeIntervalWithPrefs } from "./prefs.js";
@@ -105,4 +114,21 @@ export async function editSleep(
   await client.connect();
   const db = client.getFirestore();
   await updateDoc(doc(db, "sleep", childUid, "intervals", intervalId), patch);
+}
+
+// ── Delete sleep ─────────────────────────────────────────────────────────────
+
+/**
+ * Permanently deletes a sleep interval (`sleep/{cid}/intervals/{id}`). The id
+ * comes from `getSleepHistory`. Does **not** recompute the parent `prefs.lastSleep`
+ * summary, so it may briefly still reference a deleted entry until the next write.
+ */
+export async function deleteSleep(
+  client: HuckleberryClient,
+  childUid: string,
+  intervalId: string,
+): Promise<void> {
+  await client.connect();
+  const db = client.getFirestore();
+  await deleteDoc(doc(db, "sleep", childUid, "intervals", intervalId));
 }

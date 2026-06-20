@@ -10,6 +10,8 @@ import {
   getFeedHistory,
   editFeed,
   editPump,
+  deleteFeed,
+  deletePump,
 } from "../client/index.js";
 
 // T2.5: Feeding Tools (7 tools)
@@ -248,6 +250,40 @@ registerTool(
     });
     return {
       content: [{ type: "text", text: JSON.stringify({ edited: input.interval_id }, null, 2) }],
+    };
+  },
+);
+
+// delete_feed — permanently remove a feed entry (id from get_feed_history)
+registerTool(
+  "delete_feed",
+  "Permanently delete a feed entry (nursing/bottle/solids). Get the interval_id from get_feed_history first.",
+  z.object({
+    child_uid: z.string().min(1, "child_uid is required"),
+    interval_id: z.string().min(1, "interval_id is required (from get_feed_history)"),
+  }),
+  async (input) => {
+    const client = await getClient();
+    await deleteFeed(client, input.child_uid, input.interval_id);
+    return {
+      content: [{ type: "text", text: JSON.stringify({ deleted: input.interval_id }, null, 2) }],
+    };
+  },
+);
+
+// delete_pump — permanently remove a pump entry (id from list_pump_intervals)
+registerTool(
+  "delete_pump",
+  "Permanently delete a pump entry. Get the interval_id from list_pump_intervals first.",
+  z.object({
+    child_uid: z.string().min(1, "child_uid is required"),
+    interval_id: z.string().min(1, "interval_id is required (from list_pump_intervals)"),
+  }),
+  async (input) => {
+    const client = await getClient();
+    await deletePump(client, input.child_uid, input.interval_id);
+    return {
+      content: [{ type: "text", text: JSON.stringify({ deleted: input.interval_id }, null, 2) }],
     };
   },
 );
