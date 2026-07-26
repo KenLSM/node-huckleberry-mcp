@@ -65,6 +65,18 @@ Every parent `prefs` also carries `timestamp:{ seconds:<float> }` and
   **Confirm the real docs before porting** — act in app, then inspect the
   `feed/{cid}/intervals` and `types/{cid}/custom` documents.
 
+## Open questions (unresolved shapes we depend on)
+
+- **How is an _in-progress_ session represented?** ❓ Unknown — and it matters:
+  logging a sleep while a session is running in the app **ends that live session**
+  (`TASKS.md` → BUG1). Every `log_*` overwrites the tracker's `prefs.last*` via
+  `writeIntervalWithPrefs`, so if the app tracks the active session there (a
+  `lastSleep` without `duration`? a sibling field? an interval flagged
+  in-progress?), we're clobbering it. We have **never captured** this shape —
+  `inProgress` appears only as an invented value in `models.test.ts`, not from real
+  data. Capture: start a sleep in the app, dump `sleep/{cid}` (parent `prefs` +
+  `intervals`), then `log_sleep` and dump again — the diff is the answer.
+
 ## Candidates to confirm (❓)
 
 Guessed from the app's features / the Python reference; **not yet probed**. The

@@ -44,6 +44,11 @@ Convert the user's natural language to epoch seconds:
 
 ## 4. There are no live timers
 
+> 🐛 **Known bug:** `log_sleep` ends a sleep session that's currently **running in
+> the Huckleberry app**. If the user might have a live session going ("she's
+> napping now"), say so and suggest they stop it in the app first, or log the nap
+> once it's over — don't silently write over a running session.
+
 You log **completed** events. `log_sleep` takes both `start` and `end`. There is
 no start/pause/resume — if the user says "baby just went down", either wait until
 they wake to log it, or ask for the expected end / log it when known.
