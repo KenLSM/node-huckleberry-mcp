@@ -152,43 +152,63 @@ const resolve = (tpl) => tpl.replaceAll("{cid}", cid).replaceAll("{uid}", uid);
 
 const report = { capturedAt: new Date().toISOString(), uid, cid, probes: [] };
 
+// Security rules reject reads on paths we're not allowed to touch, and probing
+// unknown candidates is the point — so a denial (or any read error) is a RESULT
+// to record, never a reason to abort the sweep and lose the whole report.
+function errStatus(err) {
+  const code = err?.code ?? "";
+  if (code === "permission-denied") return "denied";
+  return `error: ${code || err?.message || String(err)}`;
+}
+
 for (const { spec, docPath, sub } of buildProbeList()) {
   const docSegments = resolve(docPath).split("/");
   const entry = { spec, docPath: resolve(docPath), doc: null, sub: null };
 
   // Parent document (may be absent even when a subcollection exists — phantom
   // parent — so a missing doc is not proof the path is unused).
-  const parentSnap = await getDoc(doc(db, ...docSegments));
-  const parent = parentSnap.exists() ? parentSnap.data() : null;
-  entry.doc = parent
-    ? {
-        status: "exists",
-        keys: Object.keys(parent),
-        prefsKeys: parent.prefs ? Object.keys(parent.prefs) : null,
-      }
-    : { status: "absent" };
-  dump(
-    `${resolve(docPath)} (parent doc)`,
-    parent ? { prefs: parent.prefs ?? null, keys: Object.keys(parent) } : null,
-  );
+  let parent = null;
+  try {
+    const parentSnap = await getDoc(doc(db, ...docSegments));
+    parent = parentSnap.exists() ? parentSnap.data() : null;
+    entry.doc = parent
+      ? {
+          status: "exists",
+          keys: Object.keys(parent),
+          prefsKeys: parent.prefs ? Object.keys(parent.prefs) : null,
+        }
+      : { status: "absent" };
+    dump(
+      `${resolve(docPath)} (parent doc)`,
+      parent ? { prefs: parent.prefs ?? null, keys: Object.keys(parent) } : null,
+    );
+  } catch (err) {
+    entry.doc = { status: errStatus(err) };
+    dump(`${resolve(docPath)} (parent doc)`, { __probeError: entry.doc.status });
+  }
 
   // Subcollection sample.
   if (sub) {
     const subPath = `${resolve(docPath)}/${sub}`;
-    const snap = await getDocs(query(collection(db, ...docSegments, sub), limit(SAMPLE)));
-    const samples = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-    entry.sub = {
-      path: subPath,
-      status: samples.length ? "has-entries" : "empty/absent",
-      count: samples.length,
-      discriminators: discriminators(samples),
-      sampleIds: samples.map((s) => s.id),
-      samples: samples.map(annotate),
-    };
-    if (samples.length === 0) {
-      dump(`${subPath} (sample entries)`, null);
-    } else {
-      snap.docs.forEach((d, i) => dump(`${subPath}[${i}] id=${d.id}`, d.data()));
+    try {
+      const snap = await getDocs(query(collection(db, ...docSegments, sub), limit(SAMPLE)));
+      const samples = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      entry.sub = {
+        path: subPath,
+        status: samples.length ? "has-entries" : "empty/absent",
+        count: samples.length,
+        discriminators: discriminators(samples),
+        sampleIds: samples.map((s) => s.id),
+        samples: samples.map(annotate),
+      };
+      if (samples.length === 0) {
+        dump(`${subPath} (sample entries)`, null);
+      } else {
+        snap.docs.forEach((d, i) => dump(`${subPath}[${i}] id=${d.id}`, d.data()));
+      }
+    } catch (err) {
+      entry.sub = { path: subPath, status: errStatus(err), count: 0, discriminators: {} };
+      dump(`${subPath} (sample entries)`, { __probeError: entry.sub.status });
     }
   }
 
@@ -197,17 +217,44 @@ for (const { spec, docPath, sub } of buildProbeList()) {
 
 // ── Summary ──────────────────────────────────────────────────────────────────
 
+// Legend: ✓ exists/has entries · ∅ absent or empty · ⛔ denied by security rules
+// (⛔ is NOT the same as ∅ — a denied path may well exist, we just can't read it.)
+function docMark(status) {
+  if (status === "exists") return "doc✓";
+  if (status === "absent") return "doc∅";
+  if (status === "denied") return "doc⛔";
+  return "doc⚠";
+}
+
 console.log("\n──── probe summary ────");
+console.log("  legend: ✓ has data · ∅ absent/empty · ⛔ denied by rules · ⚠ read error\n");
 for (const p of report.probes) {
-  const docState = p.doc.status === "exists" ? "doc✓" : "doc✗";
-  const subState = p.sub
-    ? p.sub.status === "has-entries"
-      ? `${p.sub.path} ✓ (${p.sub.count}${
-          Object.keys(p.sub.discriminators).length ? ` ${JSON.stringify(p.sub.discriminators)}` : ""
-        })`
-      : `${p.sub.path} ∅`
-    : "";
-  console.log(`  ${docState}  ${p.spec.padEnd(26)} ${subState}`);
+  let subState = "";
+  if (p.sub) {
+    if (p.sub.status === "has-entries") {
+      const disc = Object.keys(p.sub.discriminators).length
+        ? ` ${JSON.stringify(p.sub.discriminators)}`
+        : "";
+      subState = `${p.sub.path} ✓ (${p.sub.count}${disc})`;
+    } else if (p.sub.status === "empty/absent") {
+      subState = `${p.sub.path} ∅`;
+    } else if (p.sub.status === "denied") {
+      subState = `${p.sub.path} ⛔ denied`;
+    } else {
+      subState = `${p.sub.path} ⚠ ${p.sub.status}`;
+    }
+  }
+  console.log(`  ${docMark(p.doc.status).padEnd(6)} ${p.spec.padEnd(26)} ${subState}`);
+}
+
+const denied = report.probes.filter(
+  (p) => p.doc.status === "denied" || p.sub?.status === "denied",
+).length;
+if (denied) {
+  console.log(
+    `\n${denied} path(s) denied by security rules — expected for collections this account ` +
+      `doesn't use. Denied ≠ non-existent.`,
+  );
 }
 
 if (OUT !== "-") {

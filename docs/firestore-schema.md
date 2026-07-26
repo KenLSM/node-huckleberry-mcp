@@ -65,6 +65,28 @@ Every parent `prefs` also carries `timestamp:{ seconds:<float> }` and
   **Confirm the real docs before porting** — act in app, then inspect the
   `feed/{cid}/intervals` and `types/{cid}/custom` documents.
 
+## Probe findings (run 2026-07-26, prober sweep)
+
+First real prober sweep. What it settled:
+
+- **`health/{cid}` prefs contains `lastMedication: null`** ✅ — strong evidence
+  **medication is stored in `health/{cid}/data`** (the same subcollection as growth,
+  discriminated by `mode`), _not_ a separate `medication/` collection. Our
+  `getGrowthHistory` already filters `mode === "growth"`, so medication rows are
+  correctly ignored today — but a `log_medication`/`get_medication` feature should
+  target `health/{cid}/data` with its own `mode`. **Still to capture:** the actual
+  `mode` value and field shape (log a medication in the app, then re-probe).
+- **`types/{cid}` parent doc is absent and `types/{cid}/custom` is empty** ✅ — the
+  account has no custom foods. Confirms the parent doc is a "phantom parent" (the
+  subcollection is what matters), and means the B5 custom-food shape is still
+  unconfirmed against an **app-created** doc.
+- **Candidate collections are denied, not empty** ⛔ — `medication/`, `temperature/`
+  etc. return `permission-denied` rather than an empty read. Security rules only
+  permit the collections the app actually uses, so **⛔ is itself a signal**: those
+  top-level collections most likely don't exist for this project. Combined with
+  `lastMedication` above, the picture is that extra trackers live inside
+  `health/{cid}/data` behind `mode`, not in sibling top-level collections.
+
 ## Open questions (unresolved shapes we depend on)
 
 - **How is an _in-progress_ session represented?** ❓ Unknown — and it matters:
@@ -85,15 +107,15 @@ sub being empty is **not** proof the feature doesn't exist (it may live under a
 different path, e.g. inside `health/{cid}/data` behind a `mode`). Confirm the real
 path/sub before trusting.
 
-| Candidate path                             | Hypothesis                                                                  |
-| ------------------------------------------ | --------------------------------------------------------------------------- |
-| `health/{cid}/data`                        | may also hold temperature / medication / symptom rows (check `mode` values) |
-| `medication/{cid}`                         | medicine doses — sub unknown (`data`? `entries`?)                           |
-| `temperature/{cid}`                        | temperature readings (or a `health/data` `mode`)                            |
-| `measurement/{cid}`                        | misc measurements                                                           |
-| `milestone/{cid}`                          | developmental milestones                                                    |
-| `activity/{cid}`                           | tummy time / play sessions                                                  |
-| `symptom/{cid}`                            | symptom log                                                                 |
-| `journal`/`note`/`photo`/`vaccine`/`teeth` | other app sections — paths unknown                                          |
+| Candidate path                             | Hypothesis                                                                                                                                                                                  |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `health/{cid}/data` (other `mode`s)        | **Most likely home** for medication / temperature / symptom — `lastMedication` in `health` prefs points here. Capture the `mode` values by logging one of each in the app, then re-probing. |
+| `medication/{cid}`                         | ⛔ denied in the sweep — probably not a real top-level collection (see findings)                                                                                                            |
+| `temperature/{cid}`                        | ⛔ denied — same                                                                                                                                                                            |
+| `measurement/{cid}`                        | ⛔ denied — same                                                                                                                                                                            |
+| `milestone/{cid}`                          | ⛔ denied — same                                                                                                                                                                            |
+| `activity/{cid}`                           | ⛔ denied — same                                                                                                                                                                            |
+| `symptom/{cid}`                            | ⛔ denied — same                                                                                                                                                                            |
+| `journal`/`note`/`photo`/`vaccine`/`teeth` | other app sections — paths unknown; likely also `mode`s rather than collections                                                                                                             |
 
 When one is confirmed, move it up into the tables above with its captured shape.
