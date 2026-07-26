@@ -32,10 +32,17 @@ on:
         required: false
         default: false
         type: boolean
+      diff_against_run_id:
+        description: "Diff against an earlier Inspect Schema run: paste its run ID to see exactly what changed (e.g. after acting in the app)"
+        required: false
+        type: string
 
 jobs:
   inspect:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read # required to download a previous run's artifact for diffing
     steps:
       - uses: actions/checkout@v4
 
@@ -47,6 +54,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Pull the earlier run's dump so this run can diff against it — captures
+      # don't otherwise survive between runs.
+      - name: Download baseline dump to diff against
+        if: inputs.diff_against_run_id != ''
+        uses: actions/download-artifact@v4
+        with:
+          name: schema-output
+          run-id: ${{ inputs.diff_against_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: baseline
+
       - name: Inspect schema
         env:
           HUCKLEBERRY_EMAIL: ${{ secrets.HUCKLEBERRY_EMAIL }}
@@ -55,12 +73,13 @@ jobs:
           PROBE_PATHS: ${{ inputs.probe_paths }}
           ONLY_PROBES: ${{ inputs.only_probes && '1' || '0' }}
           OUT: schema-dump.json
+          DIFF_AGAINST: ${{ inputs.diff_against_run_id != '' && 'baseline/schema-dump.json' || '' }}
         run: |
           set -o pipefail
           node scripts/inspect-schema.mjs | tee schema-output.txt
 
-      # The probe summary is the quick answer ("which paths exist?"); surface it
-      # on its own so you don't have to scroll the full dump.
+      # The probe summary (and the diff, when one was requested) is the quick
+      # answer; surface it on its own so you don't have to scroll the full dump.
       - name: Probe summary
         if: always()
         run: |
