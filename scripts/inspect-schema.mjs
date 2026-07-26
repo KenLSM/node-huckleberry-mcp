@@ -26,7 +26,7 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
 import { getFirestore, doc, getDoc, collection, getDocs, query, limit } from "firebase/firestore";
-import { writeFileSync } from "node:fs";
+import { writeFileSync, readFileSync } from "node:fs";
 
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyApGVHktXeekGyAt-G6dIeWHUkq2oXqcjg",
@@ -176,6 +176,9 @@ for (const { spec, docPath, sub } of buildProbeList()) {
           status: "exists",
           keys: Object.keys(parent),
           prefsKeys: parent.prefs ? Object.keys(parent.prefs) : null,
+          // Keep the prefs VALUES, not just key names — diffing needs them (e.g.
+          // to see how `prefs.lastSleep` changes around an in-progress session).
+          prefs: parent.prefs ? annotate(parent.prefs) : null,
         }
       : { status: "absent" };
     dump(
@@ -260,6 +263,87 @@ if (denied) {
 if (OUT !== "-") {
   writeFileSync(OUT, JSON.stringify(report, null, 2));
   console.log(`\nWrote machine-readable dump to ${OUT} (gitignored — do not commit).`);
+}
+
+// ── Diff vs an earlier capture ───────────────────────────────────────────────
+// The "act in the app, then see exactly what changed" half of docs/discovery-plan.md.
+// Recipe (e.g. BUG1 / how an in-progress sleep is represented):
+//   1. OUT=before.json npm run inspect:schema
+//   2. start a sleep (or log a medication, …) in the Huckleberry app
+//   3. DIFF_AGAINST=before.json npm run inspect:schema
+// Step 3 prints what the app changed — which IS the answer.
+
+/** Flatten a nested object into "a.b.c" -> primitive, so diffs are field-level. */
+function flatten(value, prefix = "", out = {}) {
+  if (value === null || typeof value !== "object") {
+    out[prefix || "(root)"] = value;
+    return out;
+  }
+  for (const [k, v] of Object.entries(value)) flatten(v, prefix ? `${prefix}.${k}` : k, out);
+  return out;
+}
+
+function diffObjects(before, after, label, lines) {
+  const b = flatten(before ?? {});
+  const a = flatten(after ?? {});
+  for (const key of new Set([...Object.keys(b), ...Object.keys(a)])) {
+    const bv = b[key];
+    const av = a[key];
+    if (JSON.stringify(bv) === JSON.stringify(av)) continue;
+    if (bv === undefined) lines.push(`      + ${label}.${key} = ${JSON.stringify(av)}`);
+    else if (av === undefined) lines.push(`      - ${label}.${key} (was ${JSON.stringify(bv)})`);
+    else lines.push(`      ~ ${label}.${key}: ${JSON.stringify(bv)} → ${JSON.stringify(av)}`);
+  }
+}
+
+const DIFF_AGAINST = process.env.DIFF_AGAINST;
+if (DIFF_AGAINST) {
+  console.log(`\n──── diff vs ${DIFF_AGAINST} ────`);
+  let prev;
+  try {
+    prev = JSON.parse(readFileSync(DIFF_AGAINST, "utf8"));
+  } catch (err) {
+    console.error(`Could not read ${DIFF_AGAINST}: ${err.message}`);
+    process.exit(1);
+  }
+  const prevBySpec = new Map((prev.probes ?? []).map((p) => [p.spec, p]));
+  let changes = 0;
+
+  for (const now of report.probes) {
+    const before = prevBySpec.get(now.spec);
+    if (!before) continue;
+    const lines = [];
+
+    if (before.doc?.status !== now.doc?.status) {
+      lines.push(`      ~ doc.status: ${before.doc?.status} → ${now.doc?.status}`);
+    }
+    diffObjects(before.doc?.prefs, now.doc?.prefs, "prefs", lines);
+
+    const beforeIds = new Set(before.sub?.sampleIds ?? []);
+    const nowIds = new Set(now.sub?.sampleIds ?? []);
+    for (const id of nowIds) if (!beforeIds.has(id)) lines.push(`      + entry ${id}`);
+    for (const id of beforeIds) if (!nowIds.has(id)) lines.push(`      - entry ${id}`);
+    if ((before.sub?.count ?? 0) !== (now.sub?.count ?? 0)) {
+      lines.push(`      ~ entry count: ${before.sub?.count ?? 0} → ${now.sub?.count ?? 0}`);
+    }
+    const bd = JSON.stringify(before.sub?.discriminators ?? {});
+    const nd = JSON.stringify(now.sub?.discriminators ?? {});
+    if (bd !== nd) lines.push(`      ~ discriminators: ${bd} → ${nd}`);
+
+    if (lines.length) {
+      changes += lines.length;
+      console.log(`\n  ${now.spec}`);
+      lines.forEach((l) => console.log(l));
+    }
+  }
+
+  console.log(
+    changes
+      ? `\n${changes} change(s). Anything here is what the app wrote — record it in docs/firestore-schema.md.`
+      : "\nNo changes vs the earlier capture.",
+  );
+  // `prefs.timestamp`/`local_timestamp` move on every write, so a couple of
+  // changes are normal even when nothing meaningful happened.
 }
 
 console.log("\nDone. Update docs/firestore-schema.md with anything newly confirmed.");

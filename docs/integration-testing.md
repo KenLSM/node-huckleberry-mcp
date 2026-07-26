@@ -51,7 +51,41 @@ its output (or the JSON) into the porting task.
 
 > A candidate path probing **empty/absent** is **not** proof the feature doesn't
 > exist — it may live under a different path or inside `health/{cid}/data` behind a
-> `mode`. Confirm the real path before trusting.
+> `mode`. Likewise **⛔ denied** ≠ absent: security rules simply won't let us read
+> it. Confirm the real path before trusting.
+
+### Capture what the app writes (snapshot → act → diff)
+
+The most useful mode: capture a baseline, do something in the Huckleberry app,
+capture again — the diff is exactly what the app wrote. This is how we answer
+"what does an in-progress sleep look like?" (`TASKS.md` → BUG1) or "what `mode`
+does a medication use?".
+
+Locally:
+
+```bash
+OUT=before.json npm run inspect:schema      # 1. baseline
+# 2. do the thing in the app (start a sleep, log a medication, …)
+DIFF_AGAINST=before.json npm run inspect:schema   # 3. what changed
+```
+
+Via Actions: run **Inspect Schema** once for the baseline, do the thing in the
+app, then run it again with **`diff_against_run_id`** set to the first run's ID —
+it downloads that run's dump and diffs against it. The diff appears in the job
+summary.
+
+Output is field-level, e.g.:
+
+```
+  sleep/{cid}:intervals
+      ~ prefs.lastSleep.start: 100 → 900
+      - prefs.lastSleep.duration (was 3600)
+      + prefs.sleepInProgress = true
+      + entry AbC123…
+```
+
+> `prefs.timestamp` / `prefs.local_timestamp` change on every write, so a couple
+> of diff lines are normal noise — ignore those two.
 
 ### Running it via GitHub Actions instead
 
