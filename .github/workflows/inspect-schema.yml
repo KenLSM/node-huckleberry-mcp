@@ -23,6 +23,15 @@ on:
         description: "Child UID to inspect (optional; defaults to the account's lastChild)"
         required: false
         type: string
+      probe_paths:
+        description: "Extra paths to probe, comma-separated — 'doc' or 'doc:sub' with {cid}/{uid} (e.g. medication/{cid}:entries)"
+        required: false
+        type: string
+      only_probes:
+        description: "Probe ONLY the paths above (skip the built-in verified + candidate sweep)"
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   inspect:
@@ -43,9 +52,25 @@ jobs:
           HUCKLEBERRY_EMAIL: ${{ secrets.HUCKLEBERRY_EMAIL }}
           HUCKLEBERRY_PASSWORD: ${{ secrets.HUCKLEBERRY_PASSWORD }}
           CHILD_UID: ${{ inputs.child_uid }}
+          PROBE_PATHS: ${{ inputs.probe_paths }}
+          ONLY_PROBES: ${{ inputs.only_probes && '1' || '0' }}
+          OUT: schema-dump.json
         run: |
           set -o pipefail
           node scripts/inspect-schema.mjs | tee schema-output.txt
+
+      # The probe summary is the quick answer ("which paths exist?"); surface it
+      # on its own so you don't have to scroll the full dump.
+      - name: Probe summary
+        if: always()
+        run: |
+          {
+            echo '## Probe summary'
+            echo ''
+            echo '```'
+            sed -n '/probe summary/,$p' schema-output.txt 2>/dev/null || echo '(no summary — see logs)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Publish output to job summary
         if: always()
@@ -58,10 +83,14 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Upload output artifact
+      - name: Upload output artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: schema-output
-          path: schema-output.txt
+          # schema-dump.json is the machine-readable capture (diffable, and the
+          # thing to paste back when porting models); the .txt is the readable log.
+          path: |
+            schema-output.txt
+            schema-dump.json
           if-no-files-found: ignore
