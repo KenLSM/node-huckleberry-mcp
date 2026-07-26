@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { registerTool } from "../server/server.js";
 import { getClient } from "../server/auth.js";
-import { logSleep, getSleepHistory, editSleep } from "../client/index.js";
+import { logSleep, getSleepHistory, editSleep, deleteSleep } from "../client/index.js";
 
 // T2.4: Sleep Tools (2 tools)
 
@@ -79,6 +79,23 @@ registerTool(
     });
     return {
       content: [{ type: "text", text: JSON.stringify({ edited: input.interval_id }, null, 2) }],
+    };
+  },
+);
+
+// delete_sleep — permanently remove a sleep entry (id from get_sleep_history)
+registerTool(
+  "delete_sleep",
+  "Permanently delete a sleep entry. Get the interval_id from get_sleep_history first.",
+  z.object({
+    child_uid: z.string().min(1, "child_uid is required"),
+    interval_id: z.string().min(1, "interval_id is required (from get_sleep_history)"),
+  }),
+  async (input) => {
+    const client = await getClient();
+    await deleteSleep(client, input.child_uid, input.interval_id);
+    return {
+      content: [{ type: "text", text: JSON.stringify({ deleted: input.interval_id }, null, 2) }],
     };
   },
 );

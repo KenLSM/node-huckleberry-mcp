@@ -1,16 +1,23 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import type { HuckleberryClient } from "../client/HuckleberryClient.js";
 
-const { mockAddDoc, mockSetDoc, mockUpdateDoc, mockGetDocs, mockCollection, mockDoc } = vi.hoisted(
-  () => ({
-    mockAddDoc: vi.fn(async () => ({ id: "growth-id" })),
-    mockSetDoc: vi.fn(async () => undefined),
-    mockUpdateDoc: vi.fn(async () => undefined),
-    mockGetDocs: vi.fn(),
-    mockCollection: vi.fn((_db: unknown, ...seg: string[]) => ({ path: seg.join("/") })),
-    mockDoc: vi.fn((_db: unknown, ...seg: string[]) => ({ path: seg.join("/") })),
-  }),
-);
+const {
+  mockAddDoc,
+  mockSetDoc,
+  mockUpdateDoc,
+  mockDeleteDoc,
+  mockGetDocs,
+  mockCollection,
+  mockDoc,
+} = vi.hoisted(() => ({
+  mockAddDoc: vi.fn(async () => ({ id: "growth-id" })),
+  mockSetDoc: vi.fn(async () => undefined),
+  mockUpdateDoc: vi.fn(async () => undefined),
+  mockDeleteDoc: vi.fn(async () => undefined),
+  mockGetDocs: vi.fn(),
+  mockCollection: vi.fn((_db: unknown, ...seg: string[]) => ({ path: seg.join("/") })),
+  mockDoc: vi.fn((_db: unknown, ...seg: string[]) => ({ path: seg.join("/") })),
+}));
 
 vi.mock("firebase/firestore", () => ({
   collection: mockCollection,
@@ -18,13 +25,20 @@ vi.mock("firebase/firestore", () => ({
   addDoc: mockAddDoc,
   setDoc: mockSetDoc,
   updateDoc: mockUpdateDoc,
+  deleteDoc: mockDeleteDoc,
   getDocs: mockGetDocs,
   query: (col: unknown) => col,
   orderBy: () => ({}),
   limit: () => ({}),
 }));
 
-import { logGrowth, getLatestGrowth, getGrowthHistory, editGrowth } from "../client/growthOps.js";
+import {
+  logGrowth,
+  getLatestGrowth,
+  getGrowthHistory,
+  editGrowth,
+  deleteGrowth,
+} from "../client/growthOps.js";
 
 const OFFSET = -480;
 const client = {
@@ -136,5 +150,14 @@ describe("editGrowth", () => {
 
   it("throws when no fields are provided", async () => {
     await expect(editGrowth(client, "cid", "growth-3", {})).rejects.toThrow("at least one");
+  });
+});
+
+describe("deleteGrowth", () => {
+  it("deletes health/{cid}/data/{id}", async () => {
+    await deleteGrowth(client, "cid", "growth-3");
+    expect((mockDeleteDoc.mock.calls[0][0] as { path: string }).path).toBe(
+      "health/cid/data/growth-3",
+    );
   });
 });

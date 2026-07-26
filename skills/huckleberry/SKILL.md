@@ -67,12 +67,16 @@ qualitative detail the user mentions ("spit up after the bottle", "woke up
 crying", "first solid food"). The note is saved on the entry and comes back in
 the matching history/`get_*` read.
 
-To **change** an existing entry, every tracker now has an `edit_*` tool:
-`edit_sleep`, `edit_feed` (nursing/bottle/solids), `edit_pump`, `edit_diaper`
-(diaper + potty), `edit_growth`. The flow is always: read first to get the
-entry's `id` (every history/`get_*` result includes it), then call the `edit_*`
-tool with that id (`interval_id` for sleep/feed/pump/diaper, `entry_id` for
-growth) and only the fields you want to change. Editing never requires re-logging.
+To **change** an existing entry, every tracker has an `edit_*` tool: `edit_sleep`,
+`edit_feed` (nursing/bottle/solids), `edit_pump`, `edit_diaper` (diaper + potty),
+`edit_growth`. To **remove** one, there's a matching `delete_*`: `delete_sleep`,
+`delete_feed`, `delete_pump`, `delete_diaper`, `delete_growth`. The flow is always:
+read first to get the entry's `id` (every history/`get_*` result includes it), then
+call the `edit_*`/`delete_*` tool with that id (`interval_id` for
+sleep/feed/pump/diaper, `entry_id` for growth). Editing never requires re-logging.
+
+`delete_*` is **permanent** — confirm the specific entry with the user before
+deleting (echo back what it is), the same way you confirm before writing.
 
 ## 7. Confirm before writing
 

@@ -84,7 +84,7 @@ After updating the config, restart Claude Desktop. The Huckleberry tools will ap
 
 ## Tools
 
-The server exposes **24 tools** across 6 categories. (Active-session sleep/feed
+The server exposes **29 tools** across 6 categories. (Active-session sleep/feed
 timers — `start_sleep`, `pause_feeding`, etc. — are not implemented; use the
 explicit `log_*` tools to record completed events.)
 
@@ -99,15 +99,16 @@ explicit `log_*` tools to record completed events.)
 | `get_user`  | —           | User profile + child UID list                       |
 | `get_child` | `child_uid` | Child profile (`childsName`, `gender`, `birthdate`) |
 
-### Sleep (3)
+### Sleep (4)
 
 | Tool                | Input                                                           | Purpose                            |
 | ------------------- | --------------------------------------------------------------- | ---------------------------------- |
 | `log_sleep`         | `child_uid`, `start`, `end` (epoch s), `notes?`                 | Log a completed sleep session      |
 | `get_sleep_history` | `child_uid`, `limit?`                                           | Recent sleep sessions (incl. `id`) |
 | `edit_sleep`        | `child_uid`, `interval_id`, + any of `start`/`duration`/`notes` | Edit an existing sleep entry       |
+| `delete_sleep`      | `child_uid`, `interval_id`                                      | Permanently delete a sleep entry   |
 
-### Feeding (8)
+### Feeding (10)
 
 | Tool                  | Input                                                                                                                            | Purpose                                 |
 | --------------------- | -------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
@@ -119,17 +120,20 @@ explicit `log_*` tools to record completed events.)
 | `get_feed_history`    | `child_uid`, `limit?`                                                                                                            | Recent feeds (incl. `id`), newest first |
 | `edit_feed`           | `child_uid`, `interval_id`, + any of `start`/`amount`/`bottle_type`/`units`/`left_duration`/`right_duration`/`last_side`/`notes` | Edit an existing feed entry             |
 | `edit_pump`           | `child_uid`, `interval_id`, + any of `start`/`left_amount`/`right_amount`/`units`/`duration`/`notes`                             | Edit an existing pump entry             |
+| `delete_feed`         | `child_uid`, `interval_id`                                                                                                       | Permanently delete a feed entry         |
+| `delete_pump`         | `child_uid`, `interval_id`                                                                                                       | Permanently delete a pump entry         |
 
-### Diaper (4)
+### Diaper (5)
 
-| Tool                 | Input                                                                                                             | Purpose                             |
-| -------------------- | ----------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
-| `log_diaper`         | `child_uid`, `mode` (pee/poo/both/dry), `start`, `color?`, `consistency?`, `pee_amount?`, `poo_amount?`, `notes?` | Log a diaper change                 |
-| `log_potty`          | `child_uid`, `mode` (pee/poo), `start`, `notes?`                                                                  | Log potty training activity         |
-| `get_diaper_history` | `child_uid`, `limit?`                                                                                             | Diaper + potty history (incl. `id`) |
-| `edit_diaper`        | `child_uid`, `interval_id`, + any of `start`/`mode`/`color`/`consistency`/`pee_amount`/`poo_amount`/`notes`       | Edit an existing diaper/potty entry |
+| Tool                 | Input                                                                                                             | Purpose                                 |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| `log_diaper`         | `child_uid`, `mode` (pee/poo/both/dry), `start`, `color?`, `consistency?`, `pee_amount?`, `poo_amount?`, `notes?` | Log a diaper change                     |
+| `log_potty`          | `child_uid`, `mode` (pee/poo), `start`, `notes?`                                                                  | Log potty training activity             |
+| `get_diaper_history` | `child_uid`, `limit?`                                                                                             | Diaper + potty history (incl. `id`)     |
+| `edit_diaper`        | `child_uid`, `interval_id`, + any of `start`/`mode`/`color`/`consistency`/`pee_amount`/`poo_amount`/`notes`       | Edit an existing diaper/potty entry     |
+| `delete_diaper`      | `child_uid`, `interval_id`                                                                                        | Permanently delete a diaper/potty entry |
 
-### Growth (4)
+### Growth (5)
 
 | Tool                 | Input                                                                                      | Purpose                                     |
 | -------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------- |
@@ -137,6 +141,7 @@ explicit `log_*` tools to record completed events.)
 | `get_latest_growth`  | `child_uid`                                                                                | Most recent growth measurement (incl. `id`) |
 | `get_growth_history` | `child_uid`, `limit?`                                                                      | Growth history (incl. `id`)                 |
 | `edit_growth`        | `child_uid`, `entry_id`, + any of `start`/`weight`/`height`/`head`/`units`/`notes`         | Edit an existing growth measurement         |
+| `delete_growth`      | `child_uid`, `entry_id`                                                                    | Permanently delete a growth measurement     |
 
 ### Solids — custom foods (3)
 
@@ -153,7 +158,10 @@ explicit `log_*` tools to record completed events.)
 > on the entry and returned by the matching history/`get_*` tool (each read entry
 > includes its Firestore `id`). The `edit_*` tools (`edit_sleep`, `edit_feed`,
 > `edit_pump`, `edit_diaper`, `edit_growth`) update `notes` and other fields on an
-> existing entry — pass the `id`/`interval_id`/`entry_id` from the matching read.
+> existing entry, and the `delete_*` tools remove one — both take the
+> `id`/`interval_id`/`entry_id` from the matching read. Deleting does not recompute
+> the tracker's `prefs.last*` summary, so a "most recent" view may briefly show a
+> deleted entry until the next write.
 
 ### Prompts
 

@@ -1,16 +1,23 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import type { HuckleberryClient } from "../client/HuckleberryClient.js";
 
-const { mockAddDoc, mockSetDoc, mockUpdateDoc, mockGetDocs, mockCollection, mockDoc } = vi.hoisted(
-  () => ({
-    mockAddDoc: vi.fn(async () => ({ id: "sleep-id" })),
-    mockSetDoc: vi.fn(async () => undefined),
-    mockUpdateDoc: vi.fn(async () => undefined),
-    mockGetDocs: vi.fn(),
-    mockCollection: vi.fn((_db: unknown, ...seg: string[]) => ({ path: seg.join("/") })),
-    mockDoc: vi.fn((_db: unknown, ...seg: string[]) => ({ path: seg.join("/") })),
-  }),
-);
+const {
+  mockAddDoc,
+  mockSetDoc,
+  mockUpdateDoc,
+  mockDeleteDoc,
+  mockGetDocs,
+  mockCollection,
+  mockDoc,
+} = vi.hoisted(() => ({
+  mockAddDoc: vi.fn(async () => ({ id: "sleep-id" })),
+  mockSetDoc: vi.fn(async () => undefined),
+  mockUpdateDoc: vi.fn(async () => undefined),
+  mockDeleteDoc: vi.fn(async () => undefined),
+  mockGetDocs: vi.fn(),
+  mockCollection: vi.fn((_db: unknown, ...seg: string[]) => ({ path: seg.join("/") })),
+  mockDoc: vi.fn((_db: unknown, ...seg: string[]) => ({ path: seg.join("/") })),
+}));
 
 vi.mock("firebase/firestore", () => ({
   collection: mockCollection,
@@ -18,13 +25,14 @@ vi.mock("firebase/firestore", () => ({
   addDoc: mockAddDoc,
   setDoc: mockSetDoc,
   updateDoc: mockUpdateDoc,
+  deleteDoc: mockDeleteDoc,
   getDocs: mockGetDocs,
   query: (col: unknown) => col,
   orderBy: () => ({}),
   limit: () => ({}),
 }));
 
-import { logSleep, getSleepHistory, editSleep } from "../client/sleepOps.js";
+import { logSleep, getSleepHistory, editSleep, deleteSleep } from "../client/sleepOps.js";
 
 const OFFSET = -480;
 const client = {
@@ -81,5 +89,13 @@ describe("editSleep", () => {
 
   it("throws when no fields are provided", async () => {
     await expect(editSleep(client, "cid", "sleep-7", {})).rejects.toThrow("at least one");
+  });
+});
+
+describe("deleteSleep", () => {
+  it("deletes sleep/{cid}/intervals/{id}", async () => {
+    await deleteSleep(client, "cid", "sleep-7");
+    const ref = mockDeleteDoc.mock.calls[0][0] as { path: string };
+    expect(ref.path).toBe("sleep/cid/intervals/sleep-7");
   });
 });
