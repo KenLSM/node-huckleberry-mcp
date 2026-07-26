@@ -104,4 +104,26 @@ describe("solidsOps", () => {
     const foods = await listCustomFoods(client, "cid", { includeArchived: true });
     expect(foods.map((f) => f.id)).toEqual(["f-arch"]);
   });
+
+  it("listCustomFoods still returns foods written by the pre-B5 code", async () => {
+    // Regression: older docs have no `type`/`archived` and numeric camelCase
+    // timestamps. The solids filter must not hide them.
+    mockGetDocs.mockResolvedValue({
+      docs: [
+        {
+          id: "legacy-1",
+          data: () => ({
+            name: "Old Mango",
+            allergens: [],
+            category: "fruit",
+            createdAt: 1_717_000_000_000,
+            updatedAt: 1_717_000_000_000,
+          }),
+        },
+      ],
+    });
+    const foods = await listCustomFoods(client, "cid");
+    expect(foods.map((f) => f.id)).toEqual(["legacy-1"]);
+    expect(foods[0].name).toBe("Old Mango");
+  });
 });
