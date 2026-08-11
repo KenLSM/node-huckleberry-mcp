@@ -99,6 +99,15 @@ First real prober sweep. What it settled:
   data. Capture: start a sleep in the app, dump `sleep/{cid}` (parent `prefs` +
   `intervals`), then `log_sleep` and dump again — the diff is the answer.
 
+- **What are the allowed diaper `color` / `consistency` values?** ❓ Unknown — and
+  it matters: we accept any string and write it through, but an unrecognized value
+  can **crash the app** on that entry (`TASKS.md` → BUG2). The legacy
+  `src/client/healthOps.ts` has a ported `DiaperColor`/`DiaperConsistency` union,
+  but that is a lead, not observed data. Capture: log one diaper per color and per
+  consistency from the app, then dump `diaper/{cid}/intervals` and record the exact
+  stored strings — including casing, and whether the app stores an enum key or a
+  display name. Record the confirmed sets under "Confirmed entry shapes" above.
+
 ## Candidates to confirm (❓)
 
 Guessed from the app's features / the Python reference; **not yet probed**. The

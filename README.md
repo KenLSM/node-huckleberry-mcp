@@ -125,6 +125,12 @@ explicit `log_*` tools to record completed events.)
 
 ### Diaper (5)
 
+> 🐛 **Known bug:** `color` (and `consistency`) are free text today, but the app
+> appears to accept only a fixed set of values — an unrecognized one can **crash
+> the Huckleberry app** on that entry, and the value persists in Firestore. Stick
+> to colors you can pick in the app, and repair a bad entry with `edit_diaper` /
+> `delete_diaper`. See `TASKS.md` → BUG2.
+
 | Tool                 | Input                                                                                                             | Purpose                                 |
 | -------------------- | ----------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
 | `log_diaper`         | `child_uid`, `mode` (pee/poo/both/dry), `start`, `color?`, `consistency?`, `pee_amount?`, `poo_amount?`, `notes?` | Log a diaper change                     |
