@@ -99,6 +99,19 @@ First real prober sweep. What it settled:
   data. Capture: start a sleep in the app, dump `sleep/{cid}` (parent `prefs` +
   `intervals`), then `log_sleep` and dump again — the diff is the answer.
 
+- **What are the allowed diaper `color` / `consistency` values?** 🟡 Adopted, not
+  yet live-confirmed. `src/client/diaperOps.ts` now constrains both to a fixed
+  set (`DIAPER_COLORS`/`DIAPER_CONSISTENCIES`) at the MCP tool boundary to close
+  BUG2 (an unrecognized value could crash the app on that entry). **This is a
+  deliberate exception to verify-first**, taken on explicit user instruction: the
+  set is ported from the legacy `src/client/healthOps.ts` union
+  (yellow/brown/green/black/red/white/orange/other;
+  hard/normal/soft/runny/watery/formed/mucousy), not captured from real
+  Firestore data — casing and enum-key-vs-display-name are still unconfirmed. If
+  it ever mismatches the app, capture it properly: log one diaper per
+  color/consistency from the app, dump `diaper/{cid}/intervals`, and update this
+  entry + `DIAPER_COLORS`/`DIAPER_CONSISTENCIES` from the observed strings.
+
 ## Candidates to confirm (❓)
 
 Guessed from the app's features / the Python reference; **not yet probed**. The

@@ -7,6 +7,8 @@ import {
   getDiaperHistory,
   editDiaper,
   deleteDiaper,
+  DIAPER_COLORS,
+  DIAPER_CONSISTENCIES,
 } from "../client/index.js";
 
 // T2.6: Diaper & Potty Tools (3 tools)
@@ -19,8 +21,8 @@ registerTool(
     child_uid: z.string().min(1, "child_uid is required"),
     mode: z.enum(["pee", "poo", "both", "dry"]),
     start: z.number().min(0, "start is required (epoch seconds)"),
-    color: z.string().optional(),
-    consistency: z.string().optional(),
+    color: z.enum(DIAPER_COLORS).optional(),
+    consistency: z.enum(DIAPER_CONSISTENCIES).optional(),
     pee_amount: z.enum(["little", "medium", "big"]).optional(),
     poo_amount: z.enum(["little", "medium", "big"]).optional(),
     notes: z.string().optional(),
@@ -106,8 +108,8 @@ registerTool(
     interval_id: z.string().min(1, "interval_id is required (from get_diaper_history)"),
     start: z.number().min(0).optional(),
     mode: z.enum(["pee", "poo", "both", "dry"]).optional(),
-    color: z.string().optional(),
-    consistency: z.string().optional(),
+    color: z.enum(DIAPER_COLORS).optional(),
+    consistency: z.enum(DIAPER_CONSISTENCIES).optional(),
     pee_amount: z.enum(["little", "medium", "big"]).optional(),
     poo_amount: z.enum(["little", "medium", "big"]).optional(),
     notes: z.string().optional(),

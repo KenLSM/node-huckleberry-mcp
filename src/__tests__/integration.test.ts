@@ -75,6 +75,17 @@ describe("MCP server integration", () => {
     expect(result.isError).toBe(true);
   });
 
+  // BUG2 regression: an app-unrecognized diaper color could crash the
+  // Huckleberry app on that entry, so the tool schema rejects it up front.
+  it("rejects a diaper color outside the fixed enum (BUG2)", async () => {
+    const client = await connectedClient();
+    const result = await client.callTool({
+      name: "log_diaper",
+      arguments: { child_uid: "cid", mode: "poo", start: 1, color: "mustard" },
+    });
+    expect(result.isError).toBe(true);
+  });
+
   it("lists prompts and resolves one with its arguments", async () => {
     const client = await connectedClient();
     const { prompts } = await client.listPrompts();

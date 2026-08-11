@@ -125,6 +125,12 @@ explicit `log_*` tools to record completed events.)
 
 ### Diaper (5)
 
+`color` and `consistency` are restricted to a fixed set of values
+(yellow/brown/green/black/red/white/orange/other;
+hard/normal/soft/runny/watery/formed/mucousy) to prevent an unrecognized value
+from crashing the Huckleberry app on that entry. See `TASKS.md` → BUG2 for how
+the set was chosen — adopted from the legacy port, not yet live-confirmed.
+
 | Tool                 | Input                                                                                                             | Purpose                                 |
 | -------------------- | ----------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
 | `log_diaper`         | `child_uid`, `mode` (pee/poo/both/dry), `start`, `color?`, `consistency?`, `pee_amount?`, `poo_amount?`, `notes?` | Log a diaper change                     |
