@@ -31,27 +31,24 @@ Convert the user's natural language to epoch seconds:
 
 ## 3. Units & enums
 
-| Tool                     | Field                              | Allowed                                                    |
-| ------------------------ | ---------------------------------- | ---------------------------------------------------------- |
-| `log_bottle`, `log_pump` | `units`                            | `ml` or `oz`                                               |
-| `log_bottle`             | `bottle_type`                      | free text: "Breast Milk", "Formula", "Cow Milk"            |
-| `log_growth`             | `units`                            | `metric` or `imperial`                                     |
-| `log_diaper`             | `mode`                             | `pee` / `poo` / `both` / `dry`                             |
-| `log_diaper`             | `pee_amount` / `poo_amount`        | `little` / `medium` / `big`                                |
-| `log_diaper`             | `color`                            | `yellow` `brown` `green` `black` `red` `white` `orange`    |
-| `log_diaper`             | `consistency`                      | `hard` `normal` `soft` `runny` `watery` `formed` `mucousy` |
-| `log_potty`              | `mode`                             | `pee` / `poo`                                              |
-| `log_nursing`            | `left_duration` / `right_duration` | seconds                                                    |
-| `log_pump`               | amounts                            | give `total_amount`, or `left_amount` + `right_amount`     |
+| Tool                     | Field                              | Allowed                                                         |
+| ------------------------ | ---------------------------------- | --------------------------------------------------------------- |
+| `log_bottle`, `log_pump` | `units`                            | `ml` or `oz`                                                    |
+| `log_bottle`             | `bottle_type`                      | free text: "Breast Milk", "Formula", "Cow Milk"                 |
+| `log_growth`             | `units`                            | `metric` or `imperial`                                          |
+| `log_diaper`             | `mode`                             | `pee` / `poo` / `both` / `dry`                                  |
+| `log_diaper`             | `pee_amount` / `poo_amount`        | `little` / `medium` / `big`                                     |
+| `log_diaper`             | `color`                            | `yellow` `brown` `green` `black` `red` `white` `orange` `other` |
+| `log_diaper`             | `consistency`                      | `hard` `normal` `soft` `runny` `watery` `formed` `mucousy`      |
+| `log_potty`              | `mode`                             | `pee` / `poo`                                                   |
+| `log_nursing`            | `left_duration` / `right_duration` | seconds                                                         |
+| `log_pump`               | amounts                            | give `total_amount`, or `left_amount` + `right_amount`          |
 
-> 🐛 **Known bug:** the server accepts **any** string for diaper `color` /
-> `consistency`, but the app appears to accept only the values above — an
-> unrecognized one can **crash the Huckleberry app** on that entry, and it stays
-> in Firestore until removed. So: never invent a value. Map what the user says to
-> the nearest one in the table ("mustard" → `yellow`, "dark green" → `green`); if
-> nothing fits, **omit the field** and put the description in `notes` instead. If
-> a bad value already got written, fix it with `edit_diaper` or remove it with
-> `delete_diaper`. See `TASKS.md` → BUG2.
+`color`/`consistency` are enforced server-side — a value outside the table is
+rejected, not written (this closed a past bug where an unrecognized value
+could crash the app; see `TASKS.md` → BUG2). Map what the user says to the
+nearest value ("mustard" → `yellow`, "dark green" → `green`, `other` as a
+fallback); put anything more specific in `notes`.
 
 ## 4. There are no live timers
 

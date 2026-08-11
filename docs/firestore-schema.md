@@ -99,14 +99,18 @@ First real prober sweep. What it settled:
   data. Capture: start a sleep in the app, dump `sleep/{cid}` (parent `prefs` +
   `intervals`), then `log_sleep` and dump again — the diff is the answer.
 
-- **What are the allowed diaper `color` / `consistency` values?** ❓ Unknown — and
-  it matters: we accept any string and write it through, but an unrecognized value
-  can **crash the app** on that entry (`TASKS.md` → BUG2). The legacy
-  `src/client/healthOps.ts` has a ported `DiaperColor`/`DiaperConsistency` union,
-  but that is a lead, not observed data. Capture: log one diaper per color and per
-  consistency from the app, then dump `diaper/{cid}/intervals` and record the exact
-  stored strings — including casing, and whether the app stores an enum key or a
-  display name. Record the confirmed sets under "Confirmed entry shapes" above.
+- **What are the allowed diaper `color` / `consistency` values?** 🟡 Adopted, not
+  yet live-confirmed. `src/client/diaperOps.ts` now constrains both to a fixed
+  set (`DIAPER_COLORS`/`DIAPER_CONSISTENCIES`) at the MCP tool boundary to close
+  BUG2 (an unrecognized value could crash the app on that entry). **This is a
+  deliberate exception to verify-first**, taken on explicit user instruction: the
+  set is ported from the legacy `src/client/healthOps.ts` union
+  (yellow/brown/green/black/red/white/orange/other;
+  hard/normal/soft/runny/watery/formed/mucousy), not captured from real
+  Firestore data — casing and enum-key-vs-display-name are still unconfirmed. If
+  it ever mismatches the app, capture it properly: log one diaper per
+  color/consistency from the app, dump `diaper/{cid}/intervals`, and update this
+  entry + `DIAPER_COLORS`/`DIAPER_CONSISTENCIES` from the observed strings.
 
 ## Candidates to confirm (❓)
 

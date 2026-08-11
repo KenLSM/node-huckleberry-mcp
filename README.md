@@ -125,11 +125,11 @@ explicit `log_*` tools to record completed events.)
 
 ### Diaper (5)
 
-> 🐛 **Known bug:** `color` (and `consistency`) are free text today, but the app
-> appears to accept only a fixed set of values — an unrecognized one can **crash
-> the Huckleberry app** on that entry, and the value persists in Firestore. Stick
-> to colors you can pick in the app, and repair a bad entry with `edit_diaper` /
-> `delete_diaper`. See `TASKS.md` → BUG2.
+`color` and `consistency` are restricted to a fixed set of values
+(yellow/brown/green/black/red/white/orange/other;
+hard/normal/soft/runny/watery/formed/mucousy) to prevent an unrecognized value
+from crashing the Huckleberry app on that entry. See `TASKS.md` → BUG2 for how
+the set was chosen — adopted from the legacy port, not yet live-confirmed.
 
 | Tool                 | Input                                                                                                             | Purpose                                 |
 | -------------------- | ----------------------------------------------------------------------------------------------------------------- | --------------------------------------- |

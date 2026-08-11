@@ -14,11 +14,38 @@ import { writeIntervalWithPrefs } from "./prefs.js";
 
 const AMOUNT_MAP = { little: 0, medium: 50, big: 100 };
 
+// BUG2: an unrecognized `color`/`consistency` can crash the Huckleberry app on
+// that entry (see TASKS.md → BUG2), so these are constrained to a fixed set
+// rather than free text. Not yet live-verified against the app's own values —
+// ported from the legacy `healthOps.ts` DiaperColor/DiaperConsistency union.
+export const DIAPER_COLORS = [
+  "yellow",
+  "brown",
+  "green",
+  "black",
+  "red",
+  "white",
+  "orange",
+  "other",
+] as const;
+export type DiaperColor = (typeof DIAPER_COLORS)[number];
+
+export const DIAPER_CONSISTENCIES = [
+  "hard",
+  "normal",
+  "soft",
+  "runny",
+  "watery",
+  "formed",
+  "mucousy",
+] as const;
+export type DiaperConsistency = (typeof DIAPER_CONSISTENCIES)[number];
+
 export interface LogDiaperOptions {
   mode: "pee" | "poo" | "both" | "dry";
   start: number;
-  color?: string;
-  consistency?: string;
+  color?: DiaperColor;
+  consistency?: DiaperConsistency;
   peeAmount?: "little" | "medium" | "big";
   pooAmount?: "little" | "medium" | "big";
   notes?: string;
@@ -130,8 +157,8 @@ export interface EditDiaperOptions {
   /** Event time (epoch seconds). */
   start?: number;
   mode?: "pee" | "poo" | "both" | "dry";
-  color?: string;
-  consistency?: string;
+  color?: DiaperColor;
+  consistency?: DiaperConsistency;
   peeAmount?: "little" | "medium" | "big";
   pooAmount?: "little" | "medium" | "big";
   notes?: string;
