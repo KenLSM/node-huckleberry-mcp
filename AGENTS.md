@@ -125,3 +125,30 @@ Vitest mocks ESM via `vi.mock` + `vi.hoisted` (see existing tests for the patter
 
 - Develop on the designated feature branch; commit with clear messages; push
   when changes are complete. Don't open a PR unless asked.
+
+### Branch hygiene — keep branches small and isolated
+
+**One concern per branch, one branch per PR.** A branch should carry a single
+task (one `B*`/`T*` item, one bug fix, one doc change) so it can be reviewed,
+merged, reverted, and released on its own.
+
+Why it matters here: a branch that bundles three features couples their risk. We
+hit exactly that — a 27-file / +1216-line PR mixed tooling, a delete feature, and
+an **unverified write shape**, which meant the safe two-thirds couldn't merge
+until the risky third was verified. Splitting it into three PRs unblocked both.
+
+Rules of thumb:
+
+- Start a **new branch off `main`** for each task rather than continuing on the
+  previous one — it's the default way branches quietly accumulate scope.
+- If a branch grows a second concern, **split it** (cherry-pick the commits onto
+  fresh branches from `main`) rather than letting it ride along.
+- Keep commits concern-scoped too — a clean split is only possible when commits
+  don't mix concerns.
+- **Never bundle unverified work with verified work.** Anything pending live
+  verification (see the verify-first policy above) goes on its own branch, as a
+  **draft** PR, so it can't block or silently ship with the rest.
+- Prefer a stack (branch B based on A) over one big branch when work genuinely
+  depends on earlier work — and say so in the PR description.
+- Rough smell test: if you can't describe the branch in one sentence without
+  "and", it's probably two branches.

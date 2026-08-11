@@ -14,6 +14,10 @@ Toolchain: **TypeScript + oxc (oxlint + oxfmt) + Vitest** — not ESLint/Prettie
 Before committing run `npm run build`, `npm run lint`, `npm run format`, and
 `npm test` (all must pass). See AGENTS.md → Toolchain for details.
 
+**Branch hygiene:** one concern per branch, one branch per PR — start each task
+from a fresh branch off `main`, and never bundle unverified work with verified
+work. See AGENTS.md → Git → Branch hygiene.
+
 ## Note — we deviate from the Python reference; verify features ourselves
 
 The Python projects (`Woyken/py-huckleberry-api`, `bckenstler/py-huckleberry-mcp`)
