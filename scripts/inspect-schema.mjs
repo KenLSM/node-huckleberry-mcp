@@ -167,10 +167,22 @@ for (const { spec, docPath, sub } of buildProbeList()) {
 
   // Parent document (may be absent even when a subcollection exists — phantom
   // parent — so a missing doc is not proof the path is unused).
+  //
+  // Identity docs (users/childs) carry PII (email, childsName, birthdate) in
+  // fields outside `prefs` — keep those opaque (key names only). Tracker docs
+  // don't, and can carry meaningful sibling fields outside `prefs` (e.g. a
+  // `timer` field on sleep/{cid} that turned out to hold BUG1's answer and was
+  // invisible until now because only `prefs` was ever dumped) — surface those.
+  const isIdentityDoc = docPath === "users/{uid}" || docPath === "childs/{cid}";
   let parent = null;
   try {
     const parentSnap = await getDoc(doc(db, ...docSegments));
     parent = parentSnap.exists() ? parentSnap.data() : null;
+    const otherKeys = parent ? Object.keys(parent).filter((k) => k !== "prefs") : [];
+    const other =
+      parent && !isIdentityDoc && otherKeys.length
+        ? Object.fromEntries(otherKeys.map((k) => [k, annotate(parent[k])]))
+        : null;
     entry.doc = parent
       ? {
           status: "exists",
@@ -179,11 +191,19 @@ for (const { spec, docPath, sub } of buildProbeList()) {
           // Keep the prefs VALUES, not just key names — diffing needs them (e.g.
           // to see how `prefs.lastSleep` changes around an in-progress session).
           prefs: parent.prefs ? annotate(parent.prefs) : null,
+          // Non-prefs top-level fields (null on identity docs — see above).
+          other,
         }
       : { status: "absent" };
     dump(
       `${resolve(docPath)} (parent doc)`,
-      parent ? { prefs: parent.prefs ?? null, keys: Object.keys(parent) } : null,
+      parent
+        ? {
+            prefs: parent.prefs ?? null,
+            ...(isIdentityDoc ? {} : Object.fromEntries(otherKeys.map((k) => [k, parent[k]]))),
+            keys: Object.keys(parent),
+          }
+        : null,
     );
   } catch (err) {
     entry.doc = { status: errStatus(err) };
@@ -318,6 +338,7 @@ if (DIFF_AGAINST) {
       lines.push(`      ~ doc.status: ${before.doc?.status} → ${now.doc?.status}`);
     }
     diffObjects(before.doc?.prefs, now.doc?.prefs, "prefs", lines);
+    diffObjects(before.doc?.other, now.doc?.other, "other", lines);
 
     const beforeIds = new Set(before.sub?.sampleIds ?? []);
     const nowIds = new Set(now.sub?.sampleIds ?? []);
