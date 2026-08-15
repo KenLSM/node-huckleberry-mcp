@@ -11,8 +11,8 @@ registerTool(
   "Log a completed sleep session with start and end times",
   z.object({
     child_uid: z.string().min(1, "child_uid is required"),
-    start_time: z.number().min(0, "start_time is required (Unix timestamp in milliseconds)"),
-    end_time: z.number().min(0, "end_time is required (Unix timestamp in milliseconds)"),
+    start: z.number().min(0, "start is required (epoch seconds)"),
+    end: z.number().min(0, "end is required (epoch seconds)"),
     notes: z.string().optional(),
   }),
   async (input) => {
@@ -20,8 +20,8 @@ registerTool(
     const id = await logSleep(
       client,
       input.child_uid,
-      new Date(input.start_time),
-      new Date(input.end_time),
+      new Date(input.start * 1000),
+      new Date(input.end * 1000),
       { notes: input.notes },
     );
     return {

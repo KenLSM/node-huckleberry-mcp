@@ -52,11 +52,6 @@ fallback); put anything more specific in `notes`.
 
 ## 4. There are no live timers
 
-> 🐛 **Known bug:** `log_sleep` currently stores a near-zero duration instead of
-> the real window (a units bug in the tool, fix pending — see `TASKS.md` → BUG1).
-> The entry will show the correct `start` but the wrong `end`/duration until this
-> is fixed.
-
 You log **completed** events. `log_sleep` takes both `start` and `end`. There is
 no start/pause/resume — if the user says "baby just went down", either wait until
 they wake to log it, or ask for the expected end / log it when known.
