@@ -46,7 +46,7 @@ src/
   client/          # HuckleberryClient (base) + prefs.ts helper + *Ops.ts per tracker
   models/          # Zod schemas per document type
   server/          # MCP server bootstrap, lazy auth (getClient), error handling
-  tools/           # MCP tool registrations (19 tools), imported by index.ts
+  tools/           # MCP tool registrations (29 tools), imported by index.ts
   __tests__/       # Vitest unit tests + gated live.integration.test.ts
   index.ts         # entry point: registers tools, starts the stdio MCP server
 ```

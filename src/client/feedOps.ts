@@ -117,13 +117,38 @@ export async function logBottle(
 
 // ── Solids ─────────────────────────────────────────────────────────────────
 
+/** Source of a solids food reference: Huckleberry's curated DB or a child's custom food. */
+export type SolidsFoodSource = "curated" | "custom";
+/** The baby's reaction to a solids meal (Huckleberry's set). */
+export type SolidsReaction = "LOVED" | "MEH" | "HATED" | "ALLERGIC";
+
+/** A food eaten in a solids meal — `id`/`name`/`source` from a curated or custom food. */
+export interface SolidsFoodRef {
+  id: string;
+  name: string;
+  source: SolidsFoodSource;
+  /** Free-form amount, e.g. "a little" or a number. */
+  amount?: string | number;
+}
+
 export interface LogSolidsOptions {
   start: number;
+  /** Foods eaten — stored as a `{ foodId: {id, created_name, source, amount?} }` map. */
+  foods?: SolidsFoodRef[];
+  /** Baby's reaction — stored as `reactions: { [REACTION]: true }`. */
+  reaction?: SolidsReaction;
   notes?: string;
   time?: Date;
 }
 
-/** Logs a solids feeding. Returns the new interval ID. */
+/**
+ * Logs a solids feeding. Returns the new interval ID.
+ *
+ * The `foods` map and `reactions` shapes are ported from the Python `log_solids`
+ * and NOT yet confirmed against a real app-logged solids document — verify by
+ * logging a solid (with foods + reaction) in the app and inspecting
+ * `feed/{cid}/intervals`.
+ */
 export async function logSolids(
   client: HuckleberryClient,
   childUid: string,
@@ -133,6 +158,20 @@ export async function logSolids(
   const offset = client.getOffsetMinutes(eventDate);
   const lastUpdated = Date.now() / 1000;
 
+  const foods = options.foods?.length
+    ? Object.fromEntries(
+        options.foods.map((f) => [
+          f.id,
+          {
+            id: f.id,
+            created_name: f.name,
+            source: f.source,
+            ...(f.amount !== undefined && { amount: f.amount }),
+          },
+        ]),
+      )
+    : undefined;
+
   return writeIntervalWithPrefs(client, {
     collectionName: "feed",
     subcollection: "intervals",
@@ -141,6 +180,8 @@ export async function logSolids(
       mode: "solids",
       start: options.start,
       offset,
+      ...(foods !== undefined && { foods }),
+      ...(options.reaction !== undefined && { reactions: { [options.reaction]: true } }),
       ...(options.notes !== undefined && { notes: options.notes }),
       lastUpdated,
     },

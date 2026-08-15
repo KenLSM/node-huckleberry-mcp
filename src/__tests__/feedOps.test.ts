@@ -124,6 +124,23 @@ describe("feedOps writes", () => {
     expect(lastInterval().notes).toBeUndefined();
   });
 
+  it("logSolids writes a foods map (keyed by id) + reactions when provided", async () => {
+    await logSolids(client, "cid", {
+      start: 9,
+      foods: [
+        { id: "apple", name: "Apple", source: "curated", amount: "a little" },
+        { id: "rice", name: "Rice Cereal", source: "custom" },
+      ],
+      reaction: "LOVED",
+    });
+    const body = lastInterval();
+    expect(body.foods).toEqual({
+      apple: { id: "apple", created_name: "Apple", source: "curated", amount: "a little" },
+      rice: { id: "rice", created_name: "Rice Cereal", source: "custom" },
+    });
+    expect(body.reactions).toEqual({ LOVED: true });
+  });
+
   it("logNursing, logSolids and logPump write notes when provided", async () => {
     await logNursing(client, "cid", { start: 1, notes: "sleepy feed" });
     expect(lastInterval().notes).toBe("sleepy feed");
