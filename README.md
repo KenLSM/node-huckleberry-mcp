@@ -88,9 +88,9 @@ The server exposes **29 tools** across 6 categories. (Active-session sleep/feed
 timers — `start_sleep`, `pause_feeding`, etc. — are not implemented; use the
 explicit `log_*` tools to record completed events.)
 
-> 🐛 **Known bug:** calling `log_sleep` while a sleep session is **running in the
-> Huckleberry app** ends that live session. Until it's fixed, stop the running
-> session in the app first (or log afterwards). See `TASKS.md` → BUG1.
+> 🐛 **Known bug:** `log_sleep` writes an entry whose stored duration collapses
+> to a fraction of a second instead of the real window (a `start_time`/`end_time`
+> unit mismatch in the tool schema) — a fix is pending. See `TASKS.md` → BUG1.
 
 ### Child Management (2)
 

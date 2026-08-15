@@ -52,10 +52,10 @@ fallback); put anything more specific in `notes`.
 
 ## 4. There are no live timers
 
-> 🐛 **Known bug:** `log_sleep` ends a sleep session that's currently **running in
-> the Huckleberry app**. If the user might have a live session going ("she's
-> napping now"), say so and suggest they stop it in the app first, or log the nap
-> once it's over — don't silently write over a running session.
+> 🐛 **Known bug:** `log_sleep` currently stores a near-zero duration instead of
+> the real window (a units bug in the tool, fix pending — see `TASKS.md` → BUG1).
+> The entry will show the correct `start` but the wrong `end`/duration until this
+> is fixed.
 
 You log **completed** events. `log_sleep` takes both `start` and `end`. There is
 no start/pause/resume — if the user says "baby just went down", either wait until
