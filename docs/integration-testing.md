@@ -80,12 +80,18 @@ Output is field-level, e.g.:
   sleep/{cid}:intervals
       ~ prefs.lastSleep.start: 100 → 900
       - prefs.lastSleep.duration (was 3600)
-      + prefs.sleepInProgress = true
+      ~ other.timer.active: false → true
       + entry AbC123…
 ```
 
 > `prefs.timestamp` / `prefs.local_timestamp` change on every write, so a couple
 > of diff lines are normal noise — ignore those two.
+
+> Parent docs can carry meaningful fields **outside** `prefs` (e.g. `sleep/{cid}`
+> also has a `timer` field) — these show up in the diff under `other.*`. Identity
+> docs (`users/{uid}`, `childs/{cid}`) are the one exception: their non-`prefs`
+> fields carry PII (email, `childsName`, birthdate) and are deliberately kept
+> opaque — only field _names_, never values, for those two paths.
 
 ### Running it via GitHub Actions instead
 

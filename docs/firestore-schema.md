@@ -7,10 +7,11 @@ confirm. This is the reconcile-and-record output of `docs/discovery-plan.md`
 update this file with anything newly confirmed.
 
 > Conventions (live-confirmed): all time values are **plain numbers, not Firestore
-> `Timestamp`** — `start`/`lastUpdated` are epoch **seconds** (float), `duration`
-> is **seconds**, `offset` is timezone minutes **negated** (UTC+8 → `-480`). Doc
-> IDs are Firestore auto-IDs (`addDoc`). Each tracker is `{collection}/{cid}`
-> (parent doc holding a `prefs` summary) with entries in a subcollection.
+> `Timestamp`** — `start`/`lastUpdated` are epoch **seconds** (float, sub-second
+> precision in real app writes — see the deviation note below), `duration` is
+> **seconds**, `offset` is timezone minutes **negated** (UTC+8 → `-480`). Each
+> tracker is `{collection}/{cid}` (parent doc holding a `prefs` summary) with
+> entries in a subcollection.
 
 ## Status legend
 
@@ -40,6 +41,8 @@ update this file with anything newly confirmed.
 Confirmed entry shapes (`mode`/`type` is the in-collection discriminator):
 
 - **Sleep** ✅ — `{ start, duration, offset, lastUpdated }`; `prefs.lastSleep = { start, offset, duration }`.
+  Also has a `timer` field on the **parent** `sleep/{cid}` doc, sibling to `prefs`
+  — see the deviation + open-question notes below (BUG1).
 - **Feed / nursing** ✅ — `{ mode:"breast", leftDuration, rightDuration, lastSide, start, offset, lastUpdated }`.
 - **Feed / bottle** ✅ — `{ mode:"bottle", amount, bottleType, units, start, offset, lastUpdated }`.
 - **Feed / solids** 🟡 — `{ mode:"solids", start, offset, lastUpdated }`. The meal's
@@ -64,6 +67,15 @@ Every parent `prefs` also carries `timestamp:{ seconds:<float> }` and
   (ISO strings). Our current `log_solids`/`create_custom_food` write neither shape.
   **Confirm the real docs before porting** — act in app, then inspect the
   `feed/{cid}/intervals` and `types/{cid}/custom` documents.
+- **Interval doc IDs and timestamp precision** 🟡 — a real app-authored sleep
+  interval, captured 2026-08-15, has id `1786784022604-d6e50389f25c29176743`: a
+  **client-generated `{epochMs}-{hex}` string**, not a Firestore auto-ID. Its
+  `start`/`duration` also carry **sub-second float precision**
+  (`1786761149.657`, `22868.438`), not rounded integers. Our writes use
+  Firestore's `addDoc` auto-ID and integer/whole-float seconds — functionally
+  fine (reads/deletes work either way by id), but a real, uninvestigated shape
+  difference. Not yet known whether it matters for anything (e.g. BUG1) — noted
+  here so it isn't lost; revisit if it turns out to matter.
 
 ## Probe findings (run 2026-07-26, prober sweep)
 
@@ -89,15 +101,23 @@ First real prober sweep. What it settled:
 
 ## Open questions (unresolved shapes we depend on)
 
-- **How is an _in-progress_ session represented?** ❓ Unknown — and it matters:
-  logging a sleep while a session is running in the app **ends that live session**
-  (`TASKS.md` → BUG1). Every `log_*` overwrites the tracker's `prefs.last*` via
-  `writeIntervalWithPrefs`, so if the app tracks the active session there (a
-  `lastSleep` without `duration`? a sibling field? an interval flagged
-  in-progress?), we're clobbering it. We have **never captured** this shape —
-  `inProgress` appears only as an invented value in `models.test.ts`, not from real
-  data. Capture: start a sleep in the app, dump `sleep/{cid}` (parent `prefs` +
-  `intervals`), then `log_sleep` and dump again — the diff is the answer.
+- **How is an _in-progress_ session represented?** ❓ Narrowed, not yet answered.
+  `TASKS.md` → BUG1 tracks the investigation; summary of what a live capture
+  (2026-08-15) has shown so far:
+  - The original hypothesis — that `log_sleep` clobbers an in-progress marker
+    living inside `prefs.lastSleep` — is **not supported**. A baseline vs.
+    during-session capture showed `sleep/{cid}.prefs.lastSleep` completely
+    unchanged (`{}` before and during), and a real `log_sleep` write landing on
+    `prefs.lastSleep` while a session was live in the app did **not** end that
+    session.
+  - `sleep/{cid}` has a **`timer` field sibling to `prefs`** on the parent doc —
+    present on every capture taken so far, but its _value_ was invisible until
+    now: the inspector only ever dumped `prefs`, listing other field names
+    without their contents. Fixed in this change (`other.*` in the dump/diff) —
+    `timer` is the leading suspect for where in-progress state actually lives.
+  - **Next capture needed** (now that the tooling can see it): `OUT=before.json
+npm run inspect:schema` → start a sleep in the app, leave it running → `DIFF_AGAINST=before.json npm run inspect:schema` → read the `other.timer.*`
+    diff lines.
 
 - **What are the allowed diaper `color` / `consistency` values?** 🟡 Adopted, not
   yet live-confirmed. `src/client/diaperOps.ts` now constrains both to a fixed

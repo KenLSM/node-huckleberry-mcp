@@ -1,4 +1,8 @@
 import { describe, it, expect } from "vitest";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import { createServer } from "../server/server.js";
+import "../tools/sleep.js";
 import { HuckleberryClient } from "../client/HuckleberryClient.js";
 import {
   getDefaultChildUid,
@@ -134,6 +138,52 @@ describe.skipIf(!enabled)("live write round-trip (log_* + edit_* + delete)", () 
       },
     );
   });
+
+  // BUG1 regression: log_sleep's tool schema used to treat start/end as
+  // milliseconds and skip the seconds->ms conversion, collapsing any real
+  // window down to ~a millisecond of duration. The ops-layer round-trip above
+  // calls `logSleep` directly and would never have caught this — it bypasses
+  // the tool boundary where the bug actually lived. This goes through the
+  // real `log_sleep` MCP tool against production to prove the fix holds there.
+  it(
+    "sleep: log via the log_sleep MCP tool records the real window (BUG1)",
+    { timeout: 30000 },
+    async () => {
+      const end = uniqueStart();
+      const sleepStart = end - 1800; // 30-minute window
+      const client = makeClient();
+      let id: string | undefined;
+      let cid: string | undefined;
+      try {
+        cid = await getDefaultChildUid(client);
+
+        const server = createServer();
+        const [serverTransport, clientTransport] = InMemoryTransport.createLinkedPair();
+        await server.connect(serverTransport);
+        const mcpClient = new Client({ name: "test", version: "0" }, { capabilities: {} });
+        await mcpClient.connect(clientTransport);
+
+        const result = await mcpClient.callTool({
+          name: "log_sleep",
+          arguments: { child_uid: cid, start: sleepStart, end },
+        });
+        expect(result.isError, JSON.stringify(result)).not.toBe(true);
+        const text =
+          result.content?.[0]?.type === "text"
+            ? (result.content[0] as { text: string }).text
+            : "{}";
+        id = (JSON.parse(text) as { sleep_id: string }).sleep_id;
+
+        const entries = await getSleepHistory(client, cid, { limit: 50 });
+        const entry = entries.find((e) => e.start === sleepStart);
+        expect(entry, `entry with start=${sleepStart} should have been written`).toBeDefined();
+        expect(entry?.duration).toBe(1800);
+      } finally {
+        if (id && cid) await client.deleteDoc("sleep", cid, "intervals", id);
+        await client.signOut();
+      }
+    },
+  );
 
   it("nursing: log, read, edit_feed, delete", { timeout: 30000 }, async () => {
     const start = uniqueStart();
