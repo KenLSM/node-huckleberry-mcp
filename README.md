@@ -11,7 +11,7 @@ Expose Huckleberry's data (sleep, feeding, growth, diapers, solids) directly in 
 
 ### Requirements
 
-- **Node.js** 18+ (CI runs on Node 24)
+- **Node.js** 24+ (matches CI; see `.nvmrc`)
 - **npm** 9+
 
 ### Quick Start
