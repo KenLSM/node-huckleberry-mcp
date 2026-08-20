@@ -147,11 +147,11 @@ the set was chosen — adopted from the legacy port, not yet live-confirmed.
 
 ### Solids — custom foods (3)
 
-| Tool                 | Input                                                    | Purpose                         |
-| -------------------- | -------------------------------------------------------- | ------------------------------- |
-| `list_curated_foods` | —                                                        | Fetch the curated food database |
-| `list_custom_foods`  | `child_uid`                                              | List custom foods for a child   |
-| `create_custom_food` | `child_uid`, `name`, `category?`, `allergens?`, `notes?` | Create a custom food entry      |
+| Tool                 | Input                                          | Purpose                         |
+| -------------------- | ---------------------------------------------- | ------------------------------- |
+| `list_curated_foods` | `limit?`                                       | Fetch the curated food database |
+| `list_custom_foods`  | `child_uid`                                    | List custom foods for a child   |
+| `create_custom_food` | `child_uid`, `name`, `category?`, `allergens?` | Create a custom food entry      |
 
 > All `start`/`end` inputs are **epoch seconds**. Times are stored with a
 > timezone `offset` derived from `HUCKLEBERRY_TIMEZONE`.
